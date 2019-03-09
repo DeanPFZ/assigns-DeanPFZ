@@ -1,8 +1,8 @@
 /*
    CS/ECE 552, Spring '19
-   Homework #5, Problem #1
-  
-   Random testbench for the 8x16b register file.
+   Homework #6, Problem #1
+   Author: Hele Sha, Pengfei Zhu, Adam Czech
+   This module tests the control logic for the processor.
 */
 module control_hier_bench(/*AUTOARG*/);
    /*AUTOWIRE*/
@@ -25,10 +25,18 @@ module control_hier_bench(/*AUTOARG*/);
    wire       clk;
    wire       rst;
 
-   reg        fail;
+   
+   integer counter;
+   // stimulus in register
+	reg [18:0] stim;
+
+	// stimulus memory
+	reg [18:0] stimMem [0:38];
 
    // Instantiate the module we want to verify
 
+	clkrst CLK (.clk(clk), .rst(rst), .err(err));
+   
    control_hier DUT(/*AUTOINST*/
                     // Outputs
                     .err                          (err),
@@ -47,6 +55,27 @@ module control_hier_bench(/*AUTOARG*/);
                     .OpCode                       (OpCode),
                     .Funct                        (Funct));
 
-   /* YOUR CODE HERE */
+   
+	initial begin 	
+		$readmemb("./stimulus.bin", stimMem);
+		Funct = 2'b00;
+		
+		for (counter = 0; counter < 38; counter = counter + 1) begin
+			stim = stimMem[counter];
+			OpCode = stim[18:14];
+			@(posedge clk);
+			#1;
+			
+			if ({OpCode, ALUSrc2, PCSrc, SESel, RegDst, RegWrite, DMemEn, MemToReg, DMemWrite, DMemDump, PCImm, Jump, err} != {stim,1'b0}) begin
+				$display("Failure: stim: %b, resp: %b, counter: %d",
+							stim, {OpCode, ALUSrc2, PCSrc, SESel, RegDst, RegWrite, DMemEn, MemToReg, DMemWrite, DMemDump, PCImm, Jump}, counter);
+				$stop();
+			end
+		end
+		$display("Test Passed!");
+		$stop();
+		
+	end
+	
 
 endmodule // control_hier_bench
