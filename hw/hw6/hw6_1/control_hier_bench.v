@@ -69,11 +69,11 @@ module control_hier_bench(/*AUTOARG*/);
 			if ({OpCode, ALUSrc2, PCSrc, SESel, RegDst, RegWrite, DMemEn, MemToReg, DMemWrite, DMemDump, PCImm, Jump, err} != {stim,1'b0}) begin
 				$display("Failure: stim: %b, resp: %b, counter: %d",
 							stim, {OpCode, ALUSrc2, PCSrc, SESel, RegDst, RegWrite, DMemEn, MemToReg, DMemWrite, DMemDump, PCImm, Jump}, counter);
-				$stop();
+				$finish();
 			end
 		end
 		$display("Test Passed!");
-		$stop();
+		$finish();
 		
 	end
 	
