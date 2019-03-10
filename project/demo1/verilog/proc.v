@@ -67,9 +67,11 @@ module proc (/*AUTOARG*/
 
 
     wire [15:0] Out;
+    wire [15:0] aluOut;
     wire Ofl;
     wire Zero;
 
+	wire [2:0]OutSel;
 
     //memory (enable is DMemWrite, wr is DMemEn, addr is Addr[15:0])
     wire [15:0] Datain;
@@ -124,6 +126,15 @@ module proc (/*AUTOARG*/
  	assign after_Branch[15:0] = Branch? readData1[15:0] : after_ROR[15:0];
  	assign B[15:0] = ALUSrc2? {{11{Imm5[4]}}, Imm5[4:0]} : after_Branch;
  	assign A[15:0] = readData1[15:0];
+	
+	wire [0:15] mirr_rd1;
+	assign mirr_rd1 = readData1[15:0];
+	assign Out = (OutSel == 3'b000) ? mirr_rd1 :
+					(OutSel == 3'b001) ? 16'h0001 :
+					(OutSel == 3'b010) ? 16'h0000 :
+					(OutSel == 3'b011) ? PC2:
+					(OutSel == 3'b100) ? {{8{Imm8[7]}}, Imm8} :
+					(OutSel == 3'b101) ? {readData1[7:0], Imm8} : aluOut;
 
  	//data memory
  	assign Datain[15:0] = readData2[15:0];
@@ -203,7 +214,7 @@ module proc (/*AUTOARG*/
  		  );
  	alu a0(
            // Outputs
-           .Out                          (Out[15:0]),
+           .Out                          (aluOut[15:0]),
            .Ofl                          (Ofl),
            .Zero                         (Zero),
            // Inputs
