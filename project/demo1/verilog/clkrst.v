@@ -34,6 +34,7 @@ module clkrst (clk, rst, err);
         $stop;
       end
     end
+
     always @(posedge clk) begin
        cycle_count = cycle_count + 1;
        if (cycle_count > 100000) begin
@@ -41,7 +42,6 @@ module clkrst (clk, rst, err);
           $finish;
        end
     end
-
 
 endmodule
 // DUMMY LINE FOR REV CONTROL :0:
