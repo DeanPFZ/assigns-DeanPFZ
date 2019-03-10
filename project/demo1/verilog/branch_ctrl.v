@@ -1,13 +1,15 @@
-module branch_ctrl(BranchOp, Branch, PCImm, Jump, Carry, Ofl, Zero, Neg, PCSrc);
+module branch_ctrl(Rs, BranchOp, Branch, PCImm, Jump, PCSrc);
 	// This signal indicates what type of conditional branch will be executed
 	// 00: BNEZ; 01: BEQZ; 10: BLTZ; 11: BGEZ;
 	input[1:0] BranchOp; 
-	
-	input Branch, PCImm, Jump, Carry, Ofl, Zero, Neg;
+	input[15:0] Rs;
+	input Branch, PCImm, Jump;
 	output PCSrc;
 	
-	wire take_branch;
+	wire take_branch, Zero, Neg;
 	
+	assign Zero = ~|Rs;
+	assign Neg = Rs[15];
 	assign take_branch = Branch?
 								(BranchOp==2'b00)?~Zero:
 								(BranchOp==2'b01)?Zero:
