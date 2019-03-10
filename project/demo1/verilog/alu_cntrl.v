@@ -4,7 +4,7 @@
  * This module implements the logic for ALU operations
  *
  */
-module alu_cntrl (opCode, funct, aluOp, invA, invB, Cin, sign);
+module alu_cntrl (opCode, funct, aluOp, invA, invB, Cin, sign, rorSel);
 
    	// declare constant for size of inputs, outputs (N),
    	// and operations (O)
@@ -20,11 +20,9 @@ module alu_cntrl (opCode, funct, aluOp, invA, invB, Cin, sign);
    	output       	invB;
    	output       	Cin;
    	output       	sign;
+   	output       	rorSel;
 
 
-	//
-	// 
-	// 
 	assign invA = (opCode == 5'b01000) ? 1 : 0; // SUBI
 
 	assign invB = (opCode[4:2] == 3'b111 && opCode[4:0] != 5'b11111) ? 1 :		// Sets
@@ -59,5 +57,8 @@ module alu_cntrl (opCode, funct, aluOp, invA, invB, Cin, sign);
 						(opCode[4:0] == 5'b11010 && funct[0] == 1) ? 1 :
 						(opCode[4:0] == 5'b11011 && funct[1] == 1) ? 1 :
 						(opCode[4:0] == 5'b11011 && funct[1] == 1) ? 1 : 0;
+
+	assign rorSel = (opCode[4:0] == 5'b10110) ? 1 :
+					(opCode[4:0] == 5'b11010 && funct[1:0] == 2'b10) ? 1 : 0;
 	
 endmodule
