@@ -173,6 +173,7 @@ module proc (/*AUTOARG*/
            .rorSel							(rorSel)
 		  );
 	output_ctrl ooutput_ctrl(
+			//inputs
 			.BTR							(BTR),
 			.Carry							(Carry),
 			.Ofl							(Ofl),
@@ -183,6 +184,7 @@ module proc (/*AUTOARG*/
 			.link							(link),
 			.SLBI							(SLBI),
 			.LBI							(LBI),
+			//output
 			.OutSel							(OutSel)
 			);
  	rf rf0(
