@@ -8,7 +8,6 @@ module control (/*AUTOARG*/
                 // Outputs
                 err, 
                 RegDst,
-                SESel,
                 RegWrite,
                 DMemWrite,
                 DMemEn,
@@ -30,12 +29,10 @@ module control (/*AUTOARG*/
 				link,
                 // Inputs
                 OpCode,
-                Funct
                 );
 
    // inputs
    input [4:0]  OpCode;
-   input [1:0]  Funct;
    
    // outputs
    output       err;
@@ -43,7 +40,6 @@ module control (/*AUTOARG*/
                 PCImm, MemToReg, DMemDump, Jump, Set, Branch, disp, HaltPC,
 				BTR, SLBI, LBI, link;
    output [1:0] RegDst;
-   output [2:0] SESel;
    output [1:0] SetOp, BranchOp;
    
    assign BTR = OpCode[4]&OpCode[3]&~OpCode[2]&~OpCode[1]&OpCode[0];
@@ -56,9 +52,11 @@ module control (/*AUTOARG*/
    assign Set = OpCode[4]&OpCode[3]&OpCode[2];
    assign Branch = ~OpCode[4]&OpCode[3]&OpCode[2];
    assign disp = ~OpCode[4]&~OpCode[3]&OpCode[2]&~OpCode[0];
+   /*
    assign SESel[2] = OpCode[2] | (OpCode[4]&OpCode[3]);
    assign SESel[1] = OpCode[4]&OpCode[0] | ~OpCode[4]&~OpCode[2]&~OpCode[1] | ~OpCode[3]&~OpCode[2]&~OpCode[1] | ~OpCode[4]&~OpCode[3]&~OpCode[0];
    assign SESel[0] = ~OpCode[3];
+   */
    assign Jump = ~OpCode[4]&~OpCode[3]&OpCode[2]&OpCode[0];
    assign PCImm = ~OpCode[4]&~OpCode[3]&OpCode[2]&~OpCode[0];
    assign DMemDump = ~OpCode[4]&~OpCode[3]&~OpCode[2]&~OpCode[1]&~OpCode[0];
@@ -80,5 +78,5 @@ module control (/*AUTOARG*/
 					| (OpCode[4] & OpCode[2])
 					| (~OpCode[3] & OpCode[2] & OpCode[1]);
 	
-   assign err = (^OpCode===1'bx)|(^Funct===1'bx);
+   assign err = (^OpCode===1'bx);
 endmodule

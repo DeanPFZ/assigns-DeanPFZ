@@ -11,7 +11,6 @@ module control_hier (/*AUTOARG*/
                      // Outputs
                      err, 
                      RegDst,
-                     SESel,
                      RegWrite,
                      DMemWrite,
                      DMemEn,
@@ -32,12 +31,10 @@ module control_hier (/*AUTOARG*/
 					 link,
                      // Inputs
                      OpCode,
-                     Funct
                      );
 
    // inputs
    input [4:0]  OpCode;
-   input [1:0]  Funct;
    
    // outputs
    output       err;
@@ -45,7 +42,6 @@ module control_hier (/*AUTOARG*/
                 PCImm, MemToReg, DMemDump, Jump, Set, Branch, disp, HaltPC,
 				BTR, SLBI, LBI, link;
    output [1:0] RegDst, SetOp, BranchOp;
-   output [2:0] SESel;
 
    wire         clk, rst, errClkRst;
 
@@ -55,7 +51,6 @@ module control_hier (/*AUTOARG*/
               // Outputs
                     .err                          (err),
                     .RegDst                       (RegDst),
-                    .SESel                        (SESel),
                     .RegWrite                     (RegWrite),
                     .DMemWrite                    (DMemWrite),
                     .DMemEn                       (DMemEn),
@@ -75,7 +70,6 @@ module control_hier (/*AUTOARG*/
 					.LBI						  (LBI),
 					.link						  (link),
                     // Inputs
-                    .OpCode                       (OpCode),
-                    .Funct                        (Funct));
+                    .OpCode                       (OpCode));
 
 endmodule
