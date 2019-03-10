@@ -16,7 +16,7 @@ module output_ctrl(BTR, Carry, Ofl, Zero, Neg, Set, SetOp, link, SLBI, LBI, OutS
 						 :1'b0;
 	assign OutSel = BTR?3'h0:
 					take_set?3'h1:
-					~take_set?3'h2:
+					(~take_set&Set)?3'h2:
 					link?3'h3:
 					LBI?3'h4:
 					SLBI?3'h5:
