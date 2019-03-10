@@ -12,7 +12,6 @@ module control (/*AUTOARG*/
                 DMemWrite,
                 DMemEn,
                 ALUSrc2,
-                //PCSrc,
                 PCImm,
                 MemToReg,
                 DMemDump,
@@ -28,7 +27,7 @@ module control (/*AUTOARG*/
 				LBI,
 				link,
                 // Inputs
-                OpCode,
+                OpCode
                 );
 
    // inputs
@@ -36,7 +35,7 @@ module control (/*AUTOARG*/
    
    // outputs
    output       err;
-   output       RegWrite, DMemWrite, DMemEn, ALUSrc2, //PCSrc, 
+   output       RegWrite, DMemWrite, DMemEn, ALUSrc2,
                 PCImm, MemToReg, DMemDump, Jump, Set, Branch, disp, HaltPC,
 				BTR, SLBI, LBI, link;
    output [1:0] RegDst;

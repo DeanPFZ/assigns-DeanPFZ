@@ -12,7 +12,12 @@ module proc (/*AUTOARG*/
     input rst;
 
     output err;
+	
+	
+	wire cntrlErr, rfErr;
+	wire Carry, Neg;
 
+	assign err = cntrlErr | rfErr;
     // None of the above lines can be modified
 
     // OR all the err ouputs for every sub-module and assign it as this
@@ -41,7 +46,6 @@ module proc (/*AUTOARG*/
     wire RegWrite, DMemWrite, DMemEn, ALUSrc2, PCSrc,
     PCImm, MemToReg, DMemDump, Jump;
     wire [1:0] RegDst;
-    wire [2:0] SESel;
 
 	wire link, disp, Branch;
 
@@ -79,7 +83,8 @@ module proc (/*AUTOARG*/
 
     wire [15:0] Dataout;
 
-
+	wire [1:0] SetOp;
+	wire [1:0] BranchOp;
 
 
     assign OpCode[4:0] = instruction[15:11];
@@ -91,19 +96,19 @@ module proc (/*AUTOARG*/
     assign ImmDis[10:0] = instruction[10:0];
 
     //pc logic
-    reg16 regPC(.q(pre_PC[15:0]), .d(post_PC[15:0]), .clk(clk), .rst(rst));
+    reg16 regPC(.q(post_PC[15:0]), .d(pre_PC[15:0]), .clk(clk), .rst(rst));
     wire CO_temp1, CO_temp2;
-    rca_16b add1(.A(post_PC[15:0]), .B(15'b010), .C_in(0),.S(PC2), .C_out(CO_temp1));
+    rca_16b add1(.A(post_PC[15:0]), .B(16'h0002), .C_in(1'b0),.S(PC2), .C_out(CO_temp1));
     assign PC2_after[15:0] = (link)? readData1[15:0] : PC2[15:0];
     wire [15:0] after_disp;
     wire [15:0] added;
-    rca_16b add2(.A(after_disp[15:0]), .B(PC2_after[15:0]), .C_in(0),.S(added[15:0]), .C_out(CO_temp2));
+    rca_16b add2(.A(after_disp[15:0]), .B(PC2_after[15:0]), .C_in(1'b0),.S(added[15:0]), .C_out(CO_temp2));
     assign PC2_back[15:0] = PCSrc? added[15:0] : PC2_after[15:0];
     assign after_disp[15:0] = disp? {{4{ImmDis[10]}},ImmDis[10:0]} : {{7{Imm8}},Imm8[7:0]};
     assign pre_PC[15:0] = HaltPC? post_PC : PC2_back;
 
     //rf
- 	assign writeRegSel[1:0] =
+ 	assign writeRegSel[2:0] =
  			(RegDst[1:0] == 2'b00)? Rs:
  			(RegDst[1:0] == 2'b01)? Rt:
  			(RegDst[1:0] == 2'b10)? instruction[4:2]:
@@ -119,7 +124,7 @@ module proc (/*AUTOARG*/
  	wire [15:0] after_ROR;
  	wire [15:0] after_Branch;
  	wire CO_temp3;
- 	rca_16b add3(.A(16'h0010), .B(~{{11{1'b0}},readData2[3:0]}), .C_in(1), .S(before_ROR[15:0]), .C_out(CO_temp3));
+ 	rca_16b add3(.A(16'h0010), .B(~{{12{1'b0}},readData2[3:0]}), .C_in(1'b1), .S(before_ROR[15:0]), .C_out(CO_temp3));
 
  	assign after_ROR[15:0] = rorSel? before_ROR[15:0] : readData2[15:0];
  	assign after_Branch[15:0] = Branch? readData1[15:0] : after_ROR[15:0];
@@ -145,7 +150,7 @@ module proc (/*AUTOARG*/
     /* your code here */
     control c0(
                // Outputs
-				.err                          (err),
+				.err                          (cntrlErr),
 				.RegDst                       (RegDst),
 				.RegWrite                     (RegWrite),
 				.DMemWrite                    (DMemWrite),
@@ -169,6 +174,14 @@ module proc (/*AUTOARG*/
 				// Inputs
 				.OpCode                       (OpCode)
  			  );
+	branch_ctrl b0(
+				.Rs							  (readData1), 
+				.BranchOp					  (BranchOp),
+				.Branch						  (Branch),
+				.PCImm						  (PCImm),
+				.Jump						  (Jump), 
+				.PCSrc						  (PCSrc)
+				);
  	alu_cntrl alu_c0(
 			//inputs
            .opCode							(OpCode),
@@ -200,7 +213,7 @@ module proc (/*AUTOARG*/
            // Outputs
            .readData1                    (readData1[15:0]),
            .readData2                    (readData2[15:0]),
-           .err                          (err),
+           .err                          (rfErr),
            // Inputs
            .clk                          (clk),
            .rst                          (rst),
@@ -222,7 +235,9 @@ module proc (/*AUTOARG*/
            .Op                           (Op[2:0]),
            .invA                         (invA),
            .invB                         (invB),
-           .sign                         (sign)
+           .sign                         (sign),
+		   .Carry						 (Carry),
+		   .Neg							 (Neg)
           );
 
  	memory2c instruction_memory(
@@ -231,9 +246,9 @@ module proc (/*AUTOARG*/
  		//Inputs
  		.data_in						(16'b0),
  		.addr							(post_PC[15:0]),
- 		.enable							(0),
- 		.wr								(1),
- 		.createdump						(0),
+ 		.enable							(1'b1),
+ 		.wr								(1'b0),
+ 		.createdump						(1'b0),
  		.clk							(clk),
  		.rst							(rst));
  	memory2c data_memory(
@@ -242,8 +257,8 @@ module proc (/*AUTOARG*/
  		//Inputs
  		.data_in						(Datain[15:0]),
  		.addr							(Out[15:0]),
- 		.enable							(DMemWrite),
- 		.wr								(DMemEn),
+ 		.enable							(DMemEn),
+ 		.wr								(DMemWrite),
  		.createdump						(Createdump),
  		.clk							(clk),
  		.rst							(rst));
