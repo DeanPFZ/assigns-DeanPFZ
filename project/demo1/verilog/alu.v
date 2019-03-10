@@ -9,7 +9,7 @@
     of the operation, as well as output a Zero bit and an Overflow
     (OFL) bit.
 */
-module alu (A, B, Cin, Op, invA, invB, sign, Out, Zero, Ofl);
+module alu (A, B, Cin, Op, invA, invB, sign, Out, Zero, Ofl, Carry, Neg);
 
    // declare constant for size of inputs, outputs (N),
    // and operations (O)
@@ -26,7 +26,9 @@ module alu (A, B, Cin, Op, invA, invB, sign, Out, Zero, Ofl);
    output [N-1:0] Out;
    output         Ofl;
    output         Zero;
-
+   output 		  Carry;
+   output		  Neg;
+   
    wire Cout, Add, And, Or, Xor, Shift;
    wire [N-1:0] OpA, OpB, shifter_out, adder_out;
    
@@ -54,5 +56,7 @@ module alu (A, B, Cin, Op, invA, invB, sign, Out, Zero, Ofl);
 	
 	assign Ofl = (Op==3'b100)?(sign?(Out[N-1]&(~OpA[N-1])&(~OpB[N-1]))|(~Out[N-1]&OpA[N-1]&OpB[N-1]):Cout):1'b0; // if not addition, Ofl will stay low
 	assign Zero = ~|Out;
-	
+	assign Carry = Cout;
+	assign Neg = Out[N-1];
+
 endmodule
