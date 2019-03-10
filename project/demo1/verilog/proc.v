@@ -76,7 +76,6 @@ module proc (/*AUTOARG*/
     //memory (enable is DMemWrite, wr is DMemEn, addr is Addr[15:0])
     wire [15:0] Datain;
     wire Createdump;
-	wire [15:0] Addr;
 
     wire [15:0] Dataout;
 
@@ -126,7 +125,7 @@ module proc (/*AUTOARG*/
  	assign after_Branch[15:0] = Branch? readData1[15:0] : after_ROR[15:0];
  	assign B[15:0] = ALUSrc2? {{11{Imm5[4]}}, Imm5[4:0]} : after_Branch;
  	assign A[15:0] = readData1[15:0];
-	
+
 	wire [0:15] mirr_rd1;
 	assign mirr_rd1 = readData1[15:0];
 	assign Out = (OutSel == 3'b000) ? mirr_rd1 :
@@ -138,7 +137,6 @@ module proc (/*AUTOARG*/
 
  	//data memory
  	assign Datain[15:0] = readData2[15:0];
- 	assign Addr[15:0] = Out[15:0];//Out is ALU output
  	assign Createdump = (HaltPC);
 
 
@@ -243,7 +241,7 @@ module proc (/*AUTOARG*/
  		.data_out						(Dataout[15:0]),
  		//Inputs
  		.data_in						(Datain[15:0]),
- 		.addr							(Addr[15:0]),
+ 		.addr							(Out[15:0]),
  		.enable							(DMemWrite),
  		.wr								(DMemEn),
  		.createdump						(Createdump),
