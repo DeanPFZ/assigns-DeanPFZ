@@ -6,7 +6,7 @@
 */
 module control (/*AUTOARG*/
                 // Outputs
-                err, 
+                err,
                 RegDst,
                 RegWrite,
                 DMemWrite,
@@ -32,7 +32,7 @@ module control (/*AUTOARG*/
 
    // inputs
    input [4:0]  OpCode;
-   
+
    // outputs
    output       err;
    output       RegWrite, DMemWrite, DMemEn, ALUSrc2,
@@ -40,11 +40,11 @@ module control (/*AUTOARG*/
 				BTR, SLBI, LBI, link;
    output [1:0] RegDst;
    output [1:0] SetOp, BranchOp;
-   
+
    assign BTR = OpCode[4]&OpCode[3]&~OpCode[2]&~OpCode[1]&OpCode[0];
    assign SLBI = OpCode[4]&~OpCode[3]&~OpCode[2]&OpCode[1]&~OpCode[0];
    assign LBI = OpCode[4]&OpCode[3]&~OpCode[2]&~OpCode[1]&~OpCode[0];
-   assign link = ~OpCode[4]&~OpCode[3]&OpCode[2]&OpCode[1];
+   assign link = (OpCode[4:0] == 5'b00110)? 0 : ~OpCode[4]&~OpCode[3]&OpCode[2]&OpCode[1];
    assign SetOp = OpCode[1:0];
    assign BranchOp = OpCode[1:0];
    assign HaltPC = DMemDump;
@@ -64,18 +64,18 @@ module control (/*AUTOARG*/
    assign ALUSrc2 = ~(OpCode[3]&OpCode[2] | OpCode[4]&OpCode[3]&OpCode[0] | OpCode[4]&OpCode[3]&OpCode[1]);
    assign DMemEn = OpCode[4]&~OpCode[3]&~OpCode[2]&~OpCode[1] | OpCode[4]&~OpCode[3]&~OpCode[2]&OpCode[0];
    assign DMemWrite = OpCode[4]&~OpCode[3]&~OpCode[2]&OpCode[1]&OpCode[0] | OpCode[4]&~OpCode[3]&~OpCode[2]&~OpCode[1]&~OpCode[0];
-   assign RegDst[1] = (~OpCode[4] & ~OpCode[3]) 
+   assign RegDst[1] = (~OpCode[4] & ~OpCode[3])
 					| (~OpCode[3] & ~OpCode[2] & OpCode[1] & ~OpCode[0])
 	   				| (OpCode[4] & OpCode[3] & ~OpCode[2] & ~OpCode[1] & ~OpCode[0]);
    assign RegDst[0] = ~OpCode[4] | (~OpCode[3] & ~OpCode[1]) | (~OpCode[3] & OpCode[2]);
 
    // OpCode[4:0] = 5'bABCDE
    // y = BC' + AE + AD + AC + B'CD
-   assign RegWrite = (OpCode[3] & ~OpCode[2]) 
-					| (OpCode[4] & OpCode[0]) 
+   assign RegWrite = (OpCode[3] & ~OpCode[2])
+					| (OpCode[4] & OpCode[0])
 					| (OpCode[4] & OpCode[1])
 					| (OpCode[4] & OpCode[2])
 					| (~OpCode[3] & OpCode[2] & OpCode[1]);
-	
+
    assign err = (^OpCode===1'bx);
 endmodule

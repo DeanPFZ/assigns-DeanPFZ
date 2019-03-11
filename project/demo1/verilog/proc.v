@@ -12,8 +12,8 @@ module proc (/*AUTOARG*/
     input rst;
 
     output err;
-	
-	
+
+
 	wire cntrlErr, rfErr;
 	wire Carry, Neg;
 
@@ -85,6 +85,7 @@ module proc (/*AUTOARG*/
 
 	wire [1:0] SetOp;
 	wire [1:0] BranchOp;
+  wire BTR;
 
 
     assign OpCode[4:0] = instruction[15:11];
@@ -104,7 +105,7 @@ module proc (/*AUTOARG*/
     wire [15:0] added;
     rca_16b add2(.A(after_disp[15:0]), .B(PC2_after[15:0]), .C_in(1'b0),.S(added[15:0]), .C_out(CO_temp2));
     assign PC2_back[15:0] = PCSrc? added[15:0] : PC2_after[15:0];
-    assign after_disp[15:0] = disp? {{4{ImmDis[10]}},ImmDis[10:0]} : {{7{Imm8}},Imm8[7:0]};
+    assign after_disp[15:0] = disp? {{5{ImmDis[10]}},ImmDis[10:0]} : {{8{Imm8[7]}},Imm8[7:0]};
     assign pre_PC[15:0] = HaltPC? post_PC : PC2_back;
 
     //rf
@@ -115,7 +116,7 @@ module proc (/*AUTOARG*/
  			(RegDst[1:0] == 2'b11)? 3'b111 : 3'b000; //3'b000 should never happen
  	assign readReg1Sel[2:0] = Rs[2:0];
  	assign readReg2Sel[2:0] = Rt[2:0];
- 	assign writeData = MemToReg? Dataout[15:0] : Out[15:0];
+ 	assign writeData = (OpCode[4:0] == 5'b00110)? PC2: (OpCode[4:0] == 5'b00111)? PC2 : MemToReg? Dataout[15:0] : Out[15:0];
  	assign writeEn = RegWrite;
 
  	//alu
@@ -128,11 +129,16 @@ module proc (/*AUTOARG*/
 
  	assign after_ROR[15:0] = rorSel? before_ROR[15:0] : readData2[15:0];
  	assign after_Branch[15:0] = Branch? readData1[15:0] : after_ROR[15:0];
- 	assign B[15:0] = ALUSrc2? {{11{Imm5[4]}}, Imm5[4:0]} : after_Branch;
+ 	assign B[15:0] = (OpCode[4:0] == 5'b01010) ? {{11{1'b0}}, Imm5[4:0]} :
+					 (OpCode[4:0] == 5'b01011) ? {{11{1'b0}}, Imm5[4:0]} :
+					 ALUSrc2 ? {{11{Imm5[4]}}, Imm5[4:0]} : after_Branch;
  	assign A[15:0] = readData1[15:0];
 
-	wire [0:15] mirr_rd1;
-	assign mirr_rd1 = readData1[15:0];
+	wire [15:0] mirr_rd1;
+	assign mirr_rd1 = {{readData1[0]},{readData1[1]},{readData1[2]},
+	{readData1[3]},{readData1[4]},{readData1[5]},{readData1[6]},{readData1[7]},
+	{readData1[8]},{readData1[9]},{readData1[10]},{readData1[11]},
+	{readData1[12]},{readData1[13]},{readData1[14]},{readData1[15]}};
 	assign Out = (OutSel == 3'b000) ? mirr_rd1 :
 					(OutSel == 3'b001) ? 16'h0001 :
 					(OutSel == 3'b010) ? 16'h0000 :
@@ -175,11 +181,11 @@ module proc (/*AUTOARG*/
 				.OpCode                       (OpCode)
  			  );
 	branch_ctrl b0(
-				.Rs							  (readData1), 
+				.Rs							  (readData1),
 				.BranchOp					  (BranchOp),
 				.Branch						  (Branch),
 				.PCImm						  (PCImm),
-				.Jump						  (Jump), 
+				.Jump						  (Jump),
 				.PCSrc						  (PCSrc)
 				);
  	alu_cntrl alu_c0(
