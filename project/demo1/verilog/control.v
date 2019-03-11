@@ -44,7 +44,7 @@ module control (/*AUTOARG*/
    assign BTR = OpCode[4]&OpCode[3]&~OpCode[2]&~OpCode[1]&OpCode[0];
    assign SLBI = OpCode[4]&~OpCode[3]&~OpCode[2]&OpCode[1]&~OpCode[0];
    assign LBI = OpCode[4]&OpCode[3]&~OpCode[2]&~OpCode[1]&~OpCode[0];
-   assign link = (OpCode[4:0] == 5'b00110)? 0 : ~OpCode[4]&~OpCode[3]&OpCode[2]&OpCode[1];
+   assign link = (OpCode[4:0] == 5'b00110)? 0 : (OpCode[4:0] == 5'b00101)? 1 : ~OpCode[4]&~OpCode[3]&OpCode[2]&OpCode[1];
    assign SetOp = OpCode[1:0];
    assign BranchOp = OpCode[1:0];
    assign HaltPC = DMemDump;
