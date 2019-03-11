@@ -27,14 +27,14 @@ module rf (
 	
    wire [15:0] q0,q1,q2,q3,q4,q5,q6,q7,d0,d1,d2,d3,d4,d5,d6,d7;
    // decode write select and choose whether to update or recirculate
-   assign d0 = writeEn?((writeRegSel==3'h00)?writeData:q0):q0;
-   assign d1 = writeEn?((writeRegSel==3'h01)?writeData:q1):q1;
-   assign d2 = writeEn?((writeRegSel==3'h02)?writeData:q2):q2;
-   assign d3 = writeEn?((writeRegSel==3'h03)?writeData:q3):q3;
-   assign d4 = writeEn?((writeRegSel==3'h04)?writeData:q4):q4;
-   assign d5 = writeEn?((writeRegSel==3'h05)?writeData:q5):q5;
-   assign d6 = writeEn?((writeRegSel==3'h06)?writeData:q6):q6;
-   assign d7 = writeEn?((writeRegSel==3'h07)?writeData:q7):q7;
+   assign d0 = writeEn?((writeRegSel==3'h0)?writeData:q0):q0;
+   assign d1 = writeEn?((writeRegSel==3'h1)?writeData:q1):q1;
+   assign d2 = writeEn?((writeRegSel==3'h2)?writeData:q2):q2;
+   assign d3 = writeEn?((writeRegSel==3'h3)?writeData:q3):q3;
+   assign d4 = writeEn?((writeRegSel==3'h4)?writeData:q4):q4;
+   assign d5 = writeEn?((writeRegSel==3'h5)?writeData:q5):q5;
+   assign d6 = writeEn?((writeRegSel==3'h6)?writeData:q6):q6;
+   assign d7 = writeEn?((writeRegSel==3'h7)?writeData:q7):q7;
    // select the output
    assign readData1 = (readReg1Sel==3'h0)?q0:
 					  (readReg1Sel==3'h1)?q1:

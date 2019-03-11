@@ -209,7 +209,7 @@ module proc (/*AUTOARG*/
 			//output
 			.OutSel							(OutSel)
 			);
- 	rf_bypass rf0(
+ 	rf rf0(
            // Outputs
            .readData1                    (readData1[15:0]),
            .readData2                    (readData2[15:0]),
