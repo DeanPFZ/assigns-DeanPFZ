@@ -61,7 +61,7 @@ module control (/*AUTOARG*/
    assign DMemDump = ~OpCode[4]&~OpCode[3]&~OpCode[2]&~OpCode[1]&~OpCode[0];
    assign MemToReg = OpCode[4]&~OpCode[3]&~OpCode[2]&~OpCode[1]&OpCode[0];
    //assign PCSrc = ~OpCode[4]&OpCode[2] | ~OpCode[4]&~OpCode[3];
-   assign ALUSrc2 = OpCode[3]&OpCode[2] | OpCode[4]&OpCode[3]&OpCode[0] | OpCode[4]&OpCode[3]&OpCode[1];
+   assign ALUSrc2 = ~(OpCode[3]&OpCode[2] | OpCode[4]&OpCode[3]&OpCode[0] | OpCode[4]&OpCode[3]&OpCode[1]);
    assign DMemEn = OpCode[4]&~OpCode[3]&~OpCode[2]&~OpCode[1] | OpCode[4]&~OpCode[3]&~OpCode[2]&OpCode[0];
    assign DMemWrite = OpCode[4]&~OpCode[3]&~OpCode[2]&OpCode[1]&OpCode[0] | OpCode[4]&~OpCode[3]&~OpCode[2]&~OpCode[1]&~OpCode[0];
    assign RegDst[1] = (~OpCode[4] & ~OpCode[3]) 

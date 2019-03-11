@@ -109,9 +109,9 @@ module proc (/*AUTOARG*/
 
     //rf
  	assign writeRegSel[2:0] =
- 			(RegDst[1:0] == 2'b00)? Rs:
- 			(RegDst[1:0] == 2'b01)? Rt:
- 			(RegDst[1:0] == 2'b10)? instruction[4:2]:
+ 			(RegDst[1:0] == 2'b00)? instruction[4:2]:
+ 			(RegDst[1:0] == 2'b01)? instruction[7:5]:
+ 			(RegDst[1:0] == 2'b10)? instruction[10:8]:
  			(RegDst[1:0] == 2'b11)? 3'b111 : 3'b000; //3'b000 should never happen
  	assign readReg1Sel[2:0] = Rs[2:0];
  	assign readReg2Sel[2:0] = Rt[2:0];
@@ -209,7 +209,7 @@ module proc (/*AUTOARG*/
 			//output
 			.OutSel							(OutSel)
 			);
- 	rf rf0(
+ 	rf_bypass rf0(
            // Outputs
            .readData1                    (readData1[15:0]),
            .readData2                    (readData2[15:0]),
