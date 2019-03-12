@@ -74,6 +74,7 @@ module proc (/*AUTOARG*/
     wire [15:0] aluOut;
     wire Ofl;
     wire Zero;
+    wire subtraction;
 
 	wire [2:0]OutSel;
 
@@ -110,12 +111,13 @@ module proc (/*AUTOARG*/
 
     //rf
  	assign writeRegSel[2:0] =
+      (OpCode[4:0] == 5'b10011)? instruction[10:8] :
  			(RegDst[1:0] == 2'b00)? instruction[4:2]:
  			(RegDst[1:0] == 2'b01)? instruction[7:5]:
  			(RegDst[1:0] == 2'b10)? instruction[10:8]:
  			(RegDst[1:0] == 2'b11)? 3'b111 : 3'b000; //3'b000 should never happen
- 	assign readReg1Sel[2:0] = Rs[2:0];
- 	assign readReg2Sel[2:0] = Rt[2:0];
+ 	assign readReg1Sel[2:0] = subtraction? Rt[2:0] : Rs[2:0];
+ 	assign readReg2Sel[2:0] = subtraction? Rs[2:0] : Rt[2:0];
  	assign writeData = (OpCode[4:0] == 5'b00110)? PC2: (OpCode[4:0] == 5'b00111)? PC2 : MemToReg? Dataout[15:0] : Out[15:0];
  	assign writeEn = RegWrite;
 
@@ -132,7 +134,6 @@ module proc (/*AUTOARG*/
   wire CO_temp4;
   wire [15:0] negReadData2;
   rca_16b add4(.A(~readData2[15:0]), .B(16'b0), .C_in(1'b1),.S(negReadData2[15:0]), .C_out(CO_temp4));
-  wire subtraction;
   wire ror_with_reg;
   assign subtraction = OpCode[4]&OpCode[3]&~OpCode[2]&OpCode[1]&OpCode[0]&~Funct[1]&Funct[0];
   assign ror_with_reg = ~rorSel? 0 : OpCode[4]&OpCode[3]&~OpCode[2]&OpCode[1]&~OpCode[0]&Funct[1]&~Funct[0];
