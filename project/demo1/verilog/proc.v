@@ -133,10 +133,16 @@ module proc (/*AUTOARG*/
   wire [15:0] negReadData2;
   rca_16b add4(.A(~readData2[15:0]), .B(16'b0), .C_in(1'b1),.S(negReadData2[15:0]), .C_out(CO_temp4));
   wire subtraction;
+  wire ror_with_reg;
   assign subtraction = OpCode[4]&OpCode[3]&~OpCode[2]&OpCode[1]&OpCode[0]&~Funct[1]&Funct[0];
+  assign ror_with_reg = ~rorSel? 0 : OpCode[4]&OpCode[3]&~OpCode[2]&OpCode[1]&~OpCode[0]&Funct[1]&~Funct[0];
+  wire CO_temp5;
+  wire [15:0] ShiftLeftValue;
+ 	rca_16b add5(.A(16'h0010), .B(~{{12{1'b0}},readData2[3:0]}), .C_in(1'b1), .S(ShiftLeftValue[15:0]), .C_out(CO_temp5));
  	assign B[15:0] = (OpCode[4:0] == 5'b01010) ? {{11{1'b0}}, Imm5[4:0]} :
 					 (OpCode[4:0] == 5'b01011) ? {{11{1'b0}}, Imm5[4:0]} :
            subtraction ? negReadData2 :
+           ror_with_reg ? ShiftLeftValue :
            rorSel? after_Branch :
 					 ALUSrc2 ? {{11{Imm5[4]}}, Imm5[4:0]} : after_Branch;
  	assign A[15:0] = readData1[15:0];
