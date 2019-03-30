@@ -50,7 +50,6 @@ module proc (/*AUTOARG*/
 	//
 	wire [31:0] ftchOut;
 	wire [31:0] decIn;
-	wire ftchDecEn; 
 
 	//
 	// Decode Signals
@@ -103,6 +102,10 @@ module proc (/*AUTOARG*/
 	wire dec_Cin;
 	wire dec_sign;
 	wire dec_rorSel;
+
+	wire [31:0] dec_rf_out;
+	wire [63:0] dec_cntrl_out;
+	wire [31:0] dec_sign_ext_out;
 
 	//
 	// Execute Signals
@@ -162,6 +165,13 @@ module proc (/*AUTOARG*/
 	wire [15:0] exe_ShiftLeftValue;
 	wire CO_temp3, CO_temp4, CO_temp5;
 
+	wire [31:0] exe_rf_in;
+	wire [63:0] exe_cntrl_in;
+	wire [31:0] exe_sign_ext_in;
+	wire [4:0] exe_Imm5;
+	wire [7:0] exe_Imm8;
+	wire [10:0] exe_ImmDis;
+
 	// PC
 	wire [15:0] exe_after_disp;
 	wire [15:0] exe_added;
@@ -199,11 +209,11 @@ module proc (/*AUTOARG*/
 	wire wb_MemToReg;
 	wire [15:0] wb_Dataout;
 	wire [15:0] wb_Out;
+	wire [63:0] wb_cntrl_out;
 
 	//
 	// PipeLine Register Enable Signals
 	//
-
 	wire ftchDecEn;
 	wire decExeEn;
 	wire exeMemEn;
@@ -264,15 +274,6 @@ module proc (/*AUTOARG*/
 	// Decode/Execute Pipeline Reg
 	//
 	// TODO: need to pipeline dec_PC2 to exe_PC2
-	wire [31:0] dec_rf_out;
-	wire [63:0] dec_cntrl_out;
-	wire [31:0] dec_sign_ext_out;
-	wire [31:0] exe_rf_in;
-	wire [63:0] exe_cntrl_in;
-	wire [31:0] exe_sign_ext_in;
-	wire [4:0] exe_Imm5;
-	wire [7:0] exe_Imm8;
-	wire [10:0] exe_ImmDis;
 
 	// TODO: Assign the enable signal
 	assign decExeEn = 1'bz; 
@@ -323,7 +324,6 @@ module proc (/*AUTOARG*/
 							dec_subtraction
 							};
 	reg64_en dec_cntl_sign(.q(exe_cntrl_in), .d(dec_cntrl_out), .clk(clk), .rst(rst), .en(decExeEn));
-	// TODO: this won't work, need to assign signals differently
 	assign {exe_cntrlErr,
 			exe_RegDst,
 			exe_RegWrite,
@@ -400,6 +400,7 @@ module proc (/*AUTOARG*/
 					(exe_OutSel == 3'b101) ? {exe_readData1[7:0], exe_Imm8} : exe_aluOut;
 
 	// PC logic
+	// TODO: move this to decode?
 	assign exe_PC2_after[15:0] = (exe_link)? exe_readData1[15:0] : exe_PC2[15:0];
 
 	// displacement amount
@@ -446,10 +447,32 @@ module proc (/*AUTOARG*/
 	assign mem_Datain[15:0] = mem_readData2[15:0];
 	assign mem_Createdump = (mem_HaltPC);
 
+	//
+	// Memory/WB Pipeline Reg
+	//
+
+	// TODO: Assign the enable signal
+	assign memWbEn = 1'bz;
+
+	assign mem_cntrl_out = {mem_MemToReg,
+							mem_Out,
+							mem_Dataout,
+							mem_OpCode,
+							mem_PC2
+							};
+	reg64_en mem_wb_cntrl(.q(wb_cntrl_in), .d(mem_cntrl_out), .clk(clk), .rst(rst), .en(memWbEn));
+	assign {wb_MemToReg,
+			wb_Out,
+			wb_DataOut,
+			wb_OpCode,
+			wb_PC2
+			} = wb_cntrl_in;
+
 
 	//
 	// Write Back Logic
 	//
+	// TODO: Need to pipeline this signal back to decode
 	assign wb_writeData = (wb_OpCode[4:0] == 5'b00110)? wb_PC2 :
 						(wb_OpCode[4:0] == 5'b00111)? wb_PC2 :
 						(wb_MemToReg) ? wb_Dataout[15:0] : wb_Out[15:0];
