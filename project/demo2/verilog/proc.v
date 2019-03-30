@@ -107,6 +107,13 @@ module proc (/*AUTOARG*/
 	wire [63:0] dec_cntrl_out;
 	wire [31:0] dec_sign_ext_out;
 
+	// PC
+	wire [15:0] dec_after_disp;
+	wire [15:0] dec_added;
+	wire [15:0] dec_PC2_after;
+	wire [15:0] dec_PC2_back;
+	wire dec_PCSrc;
+
 	//
 	// Execute Signals
 	//
@@ -153,7 +160,6 @@ module proc (/*AUTOARG*/
 	wire exe_subtraction;
 	wire [2:0]exe_OutSel;
 	wire [15:0] exe_mirr_rd1;
-	wire exe_PCSrc;
 	wire exe_Carry;
 	wire exe_Neg;
 
@@ -172,12 +178,6 @@ module proc (/*AUTOARG*/
 	wire [7:0] exe_Imm8;
 	wire [10:0] exe_ImmDis;
 
-	// PC
-	wire [15:0] exe_after_disp;
-	wire [15:0] exe_added;
-	// TODO: Need to pipeline these signals below
-	wire [15:0] exe_PC2_after;
-	wire [15:0] exe_PC2_back;
 
 	wire [63:0] exe_cntrl_out;
 
@@ -203,13 +203,13 @@ module proc (/*AUTOARG*/
 	//
 	// Write Back Signals
 	//
-	// TODO: Need to pipeline these signals
 	wire [4:0] wb_OpCode;
 	wire [15:0] wb_PC2;
 	wire wb_MemToReg;
 	wire [15:0] wb_Dataout;
 	wire [15:0] wb_Out;
 	wire [63:0] wb_cntrl_out;
+	wire [15:0] wb_writeData;
 
 	//
 	// PipeLine Register Enable Signals
@@ -222,6 +222,7 @@ module proc (/*AUTOARG*/
 	//
 	// Fetch Logic
 	//
+	assign ftch_PC2_back = dec_PC2_back;
 	assign ftch_pre_PC[15:0] = ftch_HaltPC? ftch_post_PC : ftch_PC2_back;
 
 	//PC Reg
@@ -240,7 +241,7 @@ module proc (/*AUTOARG*/
  
 	assign ftchOut = {ftch_instruction[15:0], ftch_PC2[15:0]};
 	reg32_en fet_dec(.q(decIn), .d(ftchOut), .clk(clk), .rst(rst), .en(ftchDecEn));
-	assign dec_P2C = decIn[15:0];
+	assign dec_PC2 = decIn[15:0];
 	assign dec_instruction = decIn[31:16];
 
 
@@ -269,11 +270,23 @@ module proc (/*AUTOARG*/
 	assign dec_readReg2Sel[2:0] = dec_subtraction? dec_Rs[2:0] : dec_Rt[2:0];
 	assign dec_writeEn = dec_RegWrite;
 
+	// PC logic
+	assign dec_PC2_after[15:0] = (dec_link)? dec_readData1[15:0] : dec_PC2[15:0];
+
+	// displacement amount
+	assign dec_after_disp[15:0] = dec_disp? {{5{dec_ImmDis[10]}},dec_ImmDis[10:0]} : {{8{dec_Imm8[7]}},dec_Imm8[7:0]};
+
+	// Add the displacement to the PC
+	rca_16b add2(.A(dec_after_disp[15:0]), .B(dec_PC2_after[15:0]), .C_in(1'b0),.S(dec_added[15:0]), .C_out(CO_temp2));
+
+	// Wire to update the PC
+	assign dec_PC2_back[15:0] = dec_PCSrc? dec_added[15:0] : dec_PC2_after[15:0];
+
+	assign dec_writeData = wb_writeData;
 
 	//
 	// Decode/Execute Pipeline Reg
 	//
-	// TODO: need to pipeline dec_PC2 to exe_PC2
 
 	// TODO: Assign the enable signal
 	assign decExeEn = 1'bz; 
@@ -399,18 +412,6 @@ module proc (/*AUTOARG*/
 					(exe_OutSel == 3'b100) ? {{8{exe_Imm8[7]}}, exe_Imm8} :
 					(exe_OutSel == 3'b101) ? {exe_readData1[7:0], exe_Imm8} : exe_aluOut;
 
-	// PC logic
-	// TODO: move this to decode?
-	assign exe_PC2_after[15:0] = (exe_link)? exe_readData1[15:0] : exe_PC2[15:0];
-
-	// displacement amount
-	assign exe_after_disp[15:0] = exe_disp? {{5{exe_ImmDis[10]}},exe_ImmDis[10:0]} : {{8{exe_Imm8[7]}},exe_Imm8[7:0]};
-
-	// Add the displacement to the PC
-	rca_16b add2(.A(exe_after_disp[15:0]), .B(exe_PC2_after[15:0]), .C_in(1'b0),.S(exe_added[15:0]), .C_out(CO_temp2));
-
-	// Wire to update the PC
-	assign exe_PC2_back[15:0] = exe_PCSrc? exe_added[15:0] : exe_PC2_after[15:0];
 
 
 	//
@@ -472,7 +473,6 @@ module proc (/*AUTOARG*/
 	//
 	// Write Back Logic
 	//
-	// TODO: Need to pipeline this signal back to decode
 	assign wb_writeData = (wb_OpCode[4:0] == 5'b00110)? wb_PC2 :
 						(wb_OpCode[4:0] == 5'b00111)? wb_PC2 :
 						(wb_MemToReg) ? wb_Dataout[15:0] : wb_Out[15:0];
@@ -551,18 +551,18 @@ module proc (/*AUTOARG*/
 		.rorSel					(dec_rorSel)
 		);
 
+	branch_ctrl b0(
+		.Rs						(dec_readData1),
+		.BranchOp				(dec_BranchOp),
+		.Branch					(dec_Branch),
+		.PCImm					(dec_PCImm),
+		.Jump					(dec_Jump),
+		.PCSrc					(dec_PCSrc)
+		);
+
 	//
 	// Execute Modules
 	//
-	branch_ctrl b0(
-		.Rs						(exe_readData1),
-		.BranchOp				(exe_BranchOp),
-		.Branch					(exe_Branch),
-		.PCImm					(exe_PCImm),
-		.Jump					(exe_Jump),
-		.PCSrc					(exe_PCSrc)
-		);
-
 	output_ctrl ooutput_ctrl(
 		//inputs
 		.BTR					(exe_BTR),
