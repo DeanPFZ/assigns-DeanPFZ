@@ -20,9 +20,10 @@ module proc (/*AUTOARG*/
 	output err;
 
 
-	wire cntrlErr, rfErr;
+	wire dec_rfErr;
+	wire dec_cntrlErr;
 
-	assign err = cntrlErr | rfErr;
+	assign err = dec_cntrlErr | dec_rfErr;
 	// None of the above lines can be modified
 
 	// OR all the err ouputs for every sub-module and assign it as this
@@ -37,7 +38,6 @@ module proc (/*AUTOARG*/
 	wire [15:0] ftch_pre_PC;
 	wire [15:0] ftch_post_PC;
 	wire ftch_HaltPC;
-	wire [15:0] ftch_PC2_after;
 	wire [15:0] ftch_PC2_back;
 	wire CO_temp1, CO_temp2;
 
@@ -74,7 +74,6 @@ module proc (/*AUTOARG*/
 	wire [15:0] dec_readData2;
 
 	//Control
-	wire dec_cntrlErr;
 	wire [1:0] dec_RegDst;
 	wire dec_RegWrite;
 	wire dec_DMemWrite;
@@ -147,6 +146,7 @@ module proc (/*AUTOARG*/
 	wire exe_sign;
 	wire exe_rorSel;
 	wire [15:0] exe_PC2;
+	wire [3:0] exe_writeRegSel;
 
 	wire [15:0] exe_readData1;
 	wire [15:0] exe_readData2;
@@ -185,7 +185,7 @@ module proc (/*AUTOARG*/
 	// Memory Signals
 	//
 	//memory (enable is DMemWrite, wr is DMemEn, addr is Addr[15:0])
-	wire [31:0] mem_cntrl_in;
+	wire [63:0] mem_cntrl_in;
 	wire [15:0] mem_Datain;
 	wire mem_Createdump;
 
@@ -199,6 +199,9 @@ module proc (/*AUTOARG*/
 	wire [4:0] mem_OpCode;
 	wire [15:0] mem_PC2;
 	wire [63:0] mem_cntrl_out;
+	wire mem_RegWrite;
+	wire [3:0] mem_writeRegSel;
+
 
 	//
 	// Write Back Signals
@@ -208,8 +211,10 @@ module proc (/*AUTOARG*/
 	wire wb_MemToReg;
 	wire [15:0] wb_Dataout;
 	wire [15:0] wb_Out;
-	wire [63:0] wb_cntrl_out;
+	wire [63:0] wb_cntrl_in;
 	wire [15:0] wb_writeData;
+	wire wb_RegWrite;
+	wire [3:0] wb_writeRegSel;
 
 	//
 	// PipeLine Register Enable Signals
@@ -222,6 +227,7 @@ module proc (/*AUTOARG*/
 	//
 	// Fetch Logic
 	//
+	assign ftch_HaltPC = (|ftch_post_PC) & dec_HaltPC;
 	assign ftch_PC2_back = dec_PC2_back;
 	assign ftch_pre_PC[15:0] = ftch_HaltPC? ftch_post_PC : ftch_PC2_back;
 
@@ -237,7 +243,7 @@ module proc (/*AUTOARG*/
 	//
  
 	// TODO: Assign the enable signal
-	assign ftchDecEn = 1'bz; 
+	assign ftchDecEn = 1'b1; 
  
 	assign ftchOut = {ftch_instruction[15:0], ftch_PC2[15:0]};
 	reg32_en fet_dec(.q(decIn), .d(ftchOut), .clk(clk), .rst(rst), .en(ftchDecEn));
@@ -268,7 +274,9 @@ module proc (/*AUTOARG*/
 								(dec_RegDst[1:0] == 2'b11)? 3'b111 : 3'b000; //3'b000 should never happen
 	assign dec_readReg1Sel[2:0] = dec_subtraction? dec_Rt[2:0] : dec_Rs[2:0];
 	assign dec_readReg2Sel[2:0] = dec_subtraction? dec_Rs[2:0] : dec_Rt[2:0];
-	assign dec_writeEn = dec_RegWrite;
+
+	assign dec_writeData = wb_writeData;
+	assign dec_writeEn = wb_RegWrite;
 
 	// PC logic
 	assign dec_PC2_after[15:0] = (dec_link)? dec_readData1[15:0] : dec_PC2[15:0];
@@ -282,14 +290,13 @@ module proc (/*AUTOARG*/
 	// Wire to update the PC
 	assign dec_PC2_back[15:0] = dec_PCSrc? dec_added[15:0] : dec_PC2_after[15:0];
 
-	assign dec_writeData = wb_writeData;
 
 	//
 	// Decode/Execute Pipeline Reg
 	//
 
 	// TODO: Assign the enable signal
-	assign decExeEn = 1'bz; 
+	assign decExeEn = 1'b1; 
 
 	// Register File Pipeline Reg
 	assign dec_rf_out = {dec_readData1[15:0], dec_readData2[15:0]};
@@ -334,7 +341,9 @@ module proc (/*AUTOARG*/
 							dec_Cin,
 							dec_sign,
 							dec_rorSel,
-							dec_subtraction
+							dec_subtraction,
+							dec_PC2,
+							dec_writeRegSel
 							};
 	reg64_en dec_cntl_sign(.q(exe_cntrl_in), .d(dec_cntrl_out), .clk(clk), .rst(rst), .en(decExeEn));
 	assign {exe_cntrlErr,
@@ -365,8 +374,44 @@ module proc (/*AUTOARG*/
 			exe_Cin,
 			exe_sign,
 			exe_rorSel,
-			exe_subtraction
+			exe_subtraction,
+			exe_PC2,
+			exe_writeRegSel
 			} = exe_cntrl_in;
+/*
+	assign {exe_cntrlErr,
+			exe_RegDst,
+			exe_RegWrite,
+			exe_DMemWrite,
+			exe_DMemEn,
+			exe_ALUSrc2,
+			exe_PCImm,
+			exe_MemToReg,
+			exe_DMemDump,
+			exe_Jump,
+			exe_Set,
+			exe_SetOp,
+			exe_Branch,
+			exe_BranchOp,
+			exe_disp,
+			exe_HaltPC,
+			exe_BTR,
+			exe_SLBI,
+			exe_LBI,
+			exe_link,
+			exe_OpCode,
+			exe_Funct,
+			exe_Op,
+			exe_invA,
+			exe_invB,
+			exe_Cin,
+			exe_sign,
+			exe_rorSel,
+			exe_subtraction,
+			exe_PC2,
+			exe_writeRegSel
+			} = exe_cntrl_in;
+*/
 
 	//
 	// Execute Logic
@@ -419,7 +464,7 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	assign exeMemEn = 1'bz;
+	assign exeMemEn = 1'b1;
 
 	assign exe_cntrl_out = {exe_readData2[15:0],
 							exe_HaltPC,
@@ -428,7 +473,9 @@ module proc (/*AUTOARG*/
 							exe_DMemEn,
 							exe_DMemWrite,
 							exe_OpCode,
-							exe_PC2
+							exe_PC2,
+							exe_RegWrite,
+							exe_writeRegSel
 							};
 	reg64_en exe_mem_cntrl(.q(mem_cntrl_in), .d(exe_cntrl_out), .clk(clk), .rst(rst), .en(exeMemEn));
 	assign {mem_readData2[15:0],
@@ -438,7 +485,9 @@ module proc (/*AUTOARG*/
 			mem_DMemEn,
 			mem_DMemWrite,
 			mem_OpCode,
-			mem_PC2
+			mem_PC2,
+			mem_RegWrite,
+			mem_writeRegSel
 			} = mem_cntrl_in;
 
 
@@ -453,20 +502,24 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	assign memWbEn = 1'bz;
+	assign memWbEn = 1'b1;
 
 	assign mem_cntrl_out = {mem_MemToReg,
 							mem_Out,
 							mem_Dataout,
 							mem_OpCode,
-							mem_PC2
+							mem_PC2,
+							mem_RegWrite,
+							mem_writeRegSel
 							};
 	reg64_en mem_wb_cntrl(.q(wb_cntrl_in), .d(mem_cntrl_out), .clk(clk), .rst(rst), .en(memWbEn));
 	assign {wb_MemToReg,
 			wb_Out,
-			wb_DataOut,
+			wb_Dataout,
 			wb_OpCode,
-			wb_PC2
+			wb_PC2,
+			wb_RegWrite,
+			wb_writeRegSel
 			} = wb_cntrl_in;
 
 
@@ -506,9 +559,9 @@ module proc (/*AUTOARG*/
 		.rst					(rst),
 		.readReg1Sel			(dec_readReg1Sel[2:0]),
 		.readReg2Sel			(dec_readReg2Sel[2:0]),
-		.writeRegSel			(dec_writeRegSel[2:0]),
-		.writeData				(dec_writeData[15:0]),
-		.writeEn				(dec_writeEn)
+		.writeRegSel			(wb_writeRegSel[2:0]),
+		.writeData				(wb_writeData[15:0]),
+		.writeEn				(wb_writeEn)
 		);
 
 	control c0(
