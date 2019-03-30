@@ -169,20 +169,26 @@ module proc (/*AUTOARG*/
 	wire [15:0] exe_PC2_after;
 	wire [15:0] exe_PC2_back;
 
+	wire [63:0] exe_cntrl_out;
+
 	//
 	// Memory Signals
 	//
 	//memory (enable is DMemWrite, wr is DMemEn, addr is Addr[15:0])
+	wire [31:0] mem_cntrl_in;
 	wire [15:0] mem_Datain;
 	wire mem_Createdump;
 
 	wire [15:0] mem_Dataout;
-
-	// TODO: Need to pipeline these signal
 	wire [15:0] mem_readData2;
 	wire mem_HaltPC;
 	wire mem_MemToReg;
 	wire [15:0] mem_Out;
+	wire mem_DMemEn;
+	wire mem_DMemWrite;
+	wire [4:0] mem_OpCode;
+	wire [15:0] mem_PC2;
+	wire [63:0] mem_cntrl_out;
 
 	//
 	// Write Back Signals
@@ -194,6 +200,14 @@ module proc (/*AUTOARG*/
 	wire [15:0] wb_Dataout;
 	wire [15:0] wb_Out;
 
+	//
+	// PipeLine Register Enable Signals
+	//
+
+	wire ftchDecEn;
+	wire decExeEn;
+	wire exeMemEn;
+	wire memWbEn;
 
 	//
 	// Fetch Logic
@@ -309,36 +323,37 @@ module proc (/*AUTOARG*/
 							dec_subtraction
 							};
 	reg64_en dec_cntl_sign(.q(exe_cntrl_in), .d(dec_cntrl_out), .clk(clk), .rst(rst), .en(decExeEn));
-	assign exe_cntrl_out = {exe_cntrlErr,
-							exe_RegDst,
-							exe_RegWrite,
-							exe_DMemWrite,
-							exe_DMemEn,
-							exe_ALUSrc2,
-							exe_PCImm,
-							exe_MemToReg,
-							exe_DMemDump,
-							exe_Jump,
-							exe_Set,
-							exe_SetOp,
-							exe_Branch,
-							exe_BranchOp,
-							exe_disp,
-							exe_HaltPC,
-							exe_BTR,
-							exe_SLBI,
-							exe_LBI,
-							exe_link,
-							exe_OpCode,
-							exe_Funct,
-							exe_Op,
-							exe_invA,
-							exe_invB,
-							exe_Cin,
-							exe_sign,
-							exe_rorSel,
-							exe_subtraction
-							};
+	// TODO: this won't work, need to assign signals differently
+	assign {exe_cntrlErr,
+			exe_RegDst,
+			exe_RegWrite,
+			exe_DMemWrite,
+			exe_DMemEn,
+			exe_ALUSrc2,
+			exe_PCImm,
+			exe_MemToReg,
+			exe_DMemDump,
+			exe_Jump,
+			exe_Set,
+			exe_SetOp,
+			exe_Branch,
+			exe_BranchOp,
+			exe_disp,
+			exe_HaltPC,
+			exe_BTR,
+			exe_SLBI,
+			exe_LBI,
+			exe_link,
+			exe_OpCode,
+			exe_Funct,
+			exe_Op,
+			exe_invA,
+			exe_invB,
+			exe_Cin,
+			exe_sign,
+			exe_rorSel,
+			exe_subtraction
+			} = exe_cntrl_in;
 
 	//
 	// Execute Logic
@@ -395,6 +410,34 @@ module proc (/*AUTOARG*/
 
 	// Wire to update the PC
 	assign exe_PC2_back[15:0] = exe_PCSrc? exe_added[15:0] : exe_PC2_after[15:0];
+
+
+	//
+	// Execute/Memory Pipeline Reg
+	//
+
+	// TODO: Assign the enable signal
+	assign exeMemEn = 1'bz;
+
+	assign exe_cntrl_out = {exe_readData2[15:0],
+							exe_HaltPC,
+							exe_MemToReg,
+							exe_Out,
+							exe_DMemEn,
+							exe_DMemWrite,
+							exe_OpCode,
+							exe_PC2
+							};
+	reg64_en exe_mem_cntrl(.q(mem_cntrl_in), .d(exe_cntrl_out), .clk(clk), .rst(rst), .en(exeMemEn));
+	assign {mem_readData2[15:0],
+			mem_HaltPC,
+			mem_MemToReg,
+			mem_Out,
+			mem_DMemEn,
+			mem_DMemWrite,
+			mem_OpCode,
+			mem_PC2
+			} = mem_cntrl_in;
 
 
 	//
