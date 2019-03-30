@@ -103,8 +103,9 @@ module proc (/*AUTOARG*/
 	wire dec_rorSel;
 
 	wire [31:0] dec_rf_out;
-	wire [63:0] dec_cntrl_out;
 	wire [31:0] dec_sign_ext_out;
+	wire [63:0] dec_cntrl_out1;
+	wire [63:0] dec_cntrl_out2;
 
 	// PC
 	wire [15:0] dec_after_disp;
@@ -172,13 +173,13 @@ module proc (/*AUTOARG*/
 	wire CO_temp3, CO_temp4, CO_temp5;
 
 	wire [31:0] exe_rf_in;
-	wire [63:0] exe_cntrl_in;
 	wire [31:0] exe_sign_ext_in;
 	wire [4:0] exe_Imm5;
 	wire [7:0] exe_Imm8;
 	wire [10:0] exe_ImmDis;
 
-
+	wire [63:0] exe_cntrl_in1;
+	wire [63:0] exe_cntrl_in2;
 	wire [63:0] exe_cntrl_out;
 
 	//
@@ -312,8 +313,7 @@ module proc (/*AUTOARG*/
 	assign exe_ImmDis = exe_sign_ext_in[10:0];
 
 	// Control Signal Pipeline Reg
-	assign dec_cntrl_out = {
-							dec_cntrlErr,
+	assign dec_cntrl_out1 = {dec_cntrlErr,
 							dec_RegDst,
 							dec_RegWrite,
 							dec_DMemWrite,
@@ -326,8 +326,9 @@ module proc (/*AUTOARG*/
 							dec_Set,
 							dec_SetOp,
 							dec_Branch,
-							dec_BranchOp,
-							dec_disp,
+							dec_BranchOp
+							};
+	assign dec_cntrl_out2 = {dec_disp,
 							dec_HaltPC,
 							dec_BTR,
 							dec_SLBI,
@@ -345,7 +346,9 @@ module proc (/*AUTOARG*/
 							dec_PC2,
 							dec_writeRegSel
 							};
-	reg64_en dec_cntl_sign(.q(exe_cntrl_in), .d(dec_cntrl_out), .clk(clk), .rst(rst), .en(decExeEn));
+
+	reg64_en dec_cntl_sign1(.q(exe_cntrl_in1), .d(dec_cntrl_out1), .clk(clk), .rst(rst), .en(decExeEn));
+	reg64_en dec_cntl_sign2(.q(exe_cntrl_in2), .d(dec_cntrl_out2), .clk(clk), .rst(rst), .en(decExeEn));
 	assign {exe_cntrlErr,
 			exe_RegDst,
 			exe_RegWrite,
@@ -359,8 +362,9 @@ module proc (/*AUTOARG*/
 			exe_Set,
 			exe_SetOp,
 			exe_Branch,
-			exe_BranchOp,
-			exe_disp,
+			exe_BranchOp
+			} = exe_cntrl_in1;
+	assign {exe_disp,
 			exe_HaltPC,
 			exe_BTR,
 			exe_SLBI,
@@ -377,41 +381,7 @@ module proc (/*AUTOARG*/
 			exe_subtraction,
 			exe_PC2,
 			exe_writeRegSel
-			} = exe_cntrl_in;
-/*
-	assign {exe_cntrlErr,
-			exe_RegDst,
-			exe_RegWrite,
-			exe_DMemWrite,
-			exe_DMemEn,
-			exe_ALUSrc2,
-			exe_PCImm,
-			exe_MemToReg,
-			exe_DMemDump,
-			exe_Jump,
-			exe_Set,
-			exe_SetOp,
-			exe_Branch,
-			exe_BranchOp,
-			exe_disp,
-			exe_HaltPC,
-			exe_BTR,
-			exe_SLBI,
-			exe_LBI,
-			exe_link,
-			exe_OpCode,
-			exe_Funct,
-			exe_Op,
-			exe_invA,
-			exe_invB,
-			exe_Cin,
-			exe_sign,
-			exe_rorSel,
-			exe_subtraction,
-			exe_PC2,
-			exe_writeRegSel
-			} = exe_cntrl_in;
-*/
+			} = exe_cntrl_in2;
 
 	//
 	// Execute Logic
