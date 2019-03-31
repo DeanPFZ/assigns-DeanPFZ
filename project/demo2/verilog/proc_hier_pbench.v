@@ -130,7 +130,7 @@ module proc_hier_pbench();
    assign PC = DUT.p0.ftch_post_PC;
    assign Inst = DUT.p0.ftch_instruction;
    
-   assign RegWrite = DUT.p0.dec_RegWrite;
+   assign RegWrite = DUT.p0.dec_writeEn;
    // Is register file being written to, one bit signal (1 means yes, 0 means no)
    //    
    assign WriteRegister = DUT.p0.wb_writeRegSel;

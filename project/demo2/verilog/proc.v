@@ -61,13 +61,10 @@ module proc (/*AUTOARG*/
 	wire [10:0] dec_ImmDis;
 
 	wire [15:0] dec_instruction;
-	wire [15:0] dec_PC2;
-	wire dec_subtraction;
 
 	//register file
 	wire [2:0]  dec_readReg1Sel;
 	wire [2:0]  dec_readReg2Sel;
-	wire [2:0]  dec_writeRegSel;
 	wire [15:0] dec_writeData;
 	wire        dec_writeEn;
 	wire [15:0] dec_readData1;
@@ -101,11 +98,13 @@ module proc (/*AUTOARG*/
 	wire dec_Cin;
 	wire dec_sign;
 	wire dec_rorSel;
+	wire dec_subtraction;
+	wire [15:0] dec_PC2;
+	wire [2:0]  dec_writeRegSel;
 
 	wire [31:0] dec_rf_out;
 	wire [31:0] dec_sign_ext_out;
 	wire [63:0] dec_cntrl_out1;
-	wire [63:0] dec_cntrl_out2;
 
 	// PC
 	wire [15:0] dec_after_disp;
@@ -179,7 +178,6 @@ module proc (/*AUTOARG*/
 	wire [10:0] exe_ImmDis;
 
 	wire [63:0] exe_cntrl_in1;
-	wire [63:0] exe_cntrl_in2;
 	wire [63:0] exe_cntrl_out;
 
 	//
@@ -191,6 +189,7 @@ module proc (/*AUTOARG*/
 	wire mem_Createdump;
 
 	wire [15:0] mem_Dataout;
+
 	wire [15:0] mem_readData2;
 	wire mem_HaltPC;
 	wire mem_MemToReg;
@@ -199,23 +198,25 @@ module proc (/*AUTOARG*/
 	wire mem_DMemWrite;
 	wire [4:0] mem_OpCode;
 	wire [15:0] mem_PC2;
-	wire [63:0] mem_cntrl_out;
 	wire mem_RegWrite;
 	wire [3:0] mem_writeRegSel;
 
+	wire [63:0] mem_cntrl_out;
 
 	//
 	// Write Back Signals
 	//
+
+	wire wb_MemToReg;
+	wire [15:0] wb_Out;
+	wire [15:0] wb_Dataout;
 	wire [4:0] wb_OpCode;
 	wire [15:0] wb_PC2;
-	wire wb_MemToReg;
-	wire [15:0] wb_Dataout;
-	wire [15:0] wb_Out;
-	wire [63:0] wb_cntrl_in;
-	wire [15:0] wb_writeData;
 	wire wb_RegWrite;
 	wire [3:0] wb_writeRegSel;
+
+	wire [15:0] wb_writeData;
+	wire [63:0] wb_cntrl_in;
 
 	//
 	// PipeLine Register Enable Signals
@@ -289,7 +290,8 @@ module proc (/*AUTOARG*/
 	rca_16b add2(.A(dec_after_disp[15:0]), .B(dec_PC2_after[15:0]), .C_in(1'b0),.S(dec_added[15:0]), .C_out(CO_temp2));
 
 	// Wire to update the PC
-	assign dec_PC2_back[15:0] = dec_PCSrc? dec_added[15:0] : dec_PC2_after[15:0];
+	assign dec_PC2_back[15:0] = (dec_PCSrc | dec_link) ? 
+								dec_PCSrc ? dec_added[15:0] : dec_PC2_after[15:0] : ftch_PC2;
 
 
 	//
@@ -313,7 +315,8 @@ module proc (/*AUTOARG*/
 	assign exe_ImmDis = exe_sign_ext_in[10:0];
 
 	// Control Signal Pipeline Reg
-	assign dec_cntrl_out1 = {dec_cntrlErr,
+	assign dec_cntrl_out1 = {{6{1'b1}},
+							dec_cntrlErr,
 							dec_RegDst,
 							dec_RegWrite,
 							dec_DMemWrite,
@@ -326,13 +329,12 @@ module proc (/*AUTOARG*/
 							dec_Set,
 							dec_SetOp,
 							dec_Branch,
-							dec_BranchOp
-							};
-	assign dec_cntrl_out2 = {dec_disp,
+							dec_BranchOp,
+							dec_disp,
 							dec_HaltPC,
+							dec_LBI,
 							dec_BTR,
 							dec_SLBI,
-							dec_LBI,
 							dec_link,
 							dec_OpCode,
 							dec_Funct,
@@ -348,40 +350,37 @@ module proc (/*AUTOARG*/
 							};
 
 	reg64_en dec_cntl_sign1(.q(exe_cntrl_in1), .d(dec_cntrl_out1), .clk(clk), .rst(rst), .en(decExeEn));
-	reg64_en dec_cntl_sign2(.q(exe_cntrl_in2), .d(dec_cntrl_out2), .clk(clk), .rst(rst), .en(decExeEn));
-	assign {exe_cntrlErr,
-			exe_RegDst,
-			exe_RegWrite,
-			exe_DMemWrite,
-			exe_DMemEn,
-			exe_ALUSrc2,
-			exe_PCImm,
-			exe_MemToReg,
-			exe_DMemDump,
-			exe_Jump,
-			exe_Set,
-			exe_SetOp,
-			exe_Branch,
-			exe_BranchOp
-			} = exe_cntrl_in1;
-	assign {exe_disp,
-			exe_HaltPC,
-			exe_BTR,
-			exe_SLBI,
-			exe_LBI,
-			exe_link,
-			exe_OpCode,
-			exe_Funct,
-			exe_Op,
-			exe_invA,
-			exe_invB,
-			exe_Cin,
-			exe_sign,
-			exe_rorSel,
-			exe_subtraction,
-			exe_PC2,
-			exe_writeRegSel
-			} = exe_cntrl_in2;
+	assign exe_cntrlErr = exe_cntrl_in1[57];
+	assign exe_RegDst = exe_cntrl_in1[56:55];
+	assign exe_RegWrite = exe_cntrl_in1[54];
+	assign exe_DMemWrite = exe_cntrl_in1[53];
+	assign exe_DMemEn = exe_cntrl_in1[52];
+	assign exe_ALUSrc2 = exe_cntrl_in1[51];
+	assign exe_PCImm = exe_cntrl_in1[50];
+	assign exe_MemToReg = exe_cntrl_in1[49];
+	assign exe_DMemDump = exe_cntrl_in1[48];
+	assign exe_Jump = exe_cntrl_in1[47];
+	assign exe_Set = exe_cntrl_in1[46];
+	assign exe_SetOp = exe_cntrl_in1[45:44];
+	assign exe_Branch = exe_cntrl_in1[43];
+	assign exe_BranchOp = exe_cntrl_in1[42:41];
+	assign exe_disp = exe_cntrl_in1[40];
+	assign exe_HaltPC = exe_cntrl_in1[39];
+	assign exe_LBI = exe_cntrl_in1[38];
+	assign exe_BTR = exe_cntrl_in1[37];
+	assign exe_SLBI = exe_cntrl_in1[36];
+	assign exe_link = exe_cntrl_in1[35];
+	assign exe_OpCode = exe_cntrl_in1[34:30];
+	assign exe_Funct = exe_cntrl_in1[29:28];
+	assign exe_Op = exe_cntrl_in1[27:25];
+	assign exe_invA = exe_cntrl_in1[24];
+	assign exe_invB = exe_cntrl_in1[23];
+	assign exe_Cin = exe_cntrl_in1[22];
+	assign exe_sign = exe_cntrl_in1[21];
+	assign exe_rorSel = exe_cntrl_in1[20];
+	assign exe_subtraction = exe_cntrl_in1[19];
+	assign exe_PC2 = exe_cntrl_in1[18:3];
+	assign exe_writeRegSel = exe_cntrl_in1[2:0];
 
 	//
 	// Execute Logic
@@ -436,7 +435,8 @@ module proc (/*AUTOARG*/
 	// TODO: Assign the enable signal
 	assign exeMemEn = 1'b1;
 
-	assign exe_cntrl_out = {exe_readData2[15:0],
+	assign exe_cntrl_out = {{2{1'b0}},
+							exe_readData2[15:0],
 							exe_HaltPC,
 							exe_MemToReg,
 							exe_Out,
@@ -447,18 +447,18 @@ module proc (/*AUTOARG*/
 							exe_RegWrite,
 							exe_writeRegSel
 							};
+
 	reg64_en exe_mem_cntrl(.q(mem_cntrl_in), .d(exe_cntrl_out), .clk(clk), .rst(rst), .en(exeMemEn));
-	assign {mem_readData2[15:0],
-			mem_HaltPC,
-			mem_MemToReg,
-			mem_Out,
-			mem_DMemEn,
-			mem_DMemWrite,
-			mem_OpCode,
-			mem_PC2,
-			mem_RegWrite,
-			mem_writeRegSel
-			} = mem_cntrl_in;
+	assign mem_readData2 = mem_cntrl_in[61:46];
+	assign mem_HaltPC = mem_cntrl_in[45]; 
+	assign mem_MemToReg = mem_cntrl_in[44];
+	assign mem_Out = mem_cntrl_in[43:28];
+	assign mem_DMemEn = mem_cntrl_in[27];
+	assign mem_DMemWrite = mem_cntrl_in[26];
+	assign mem_OpCode = mem_cntrl_in[25:21];
+	assign mem_PC2 = mem_cntrl_in[20:5];
+	assign mem_RegWrite = mem_cntrl_in[4];
+	assign mem_writeRegSel = mem_cntrl_in[3:0];
 
 
 	//
@@ -474,23 +474,24 @@ module proc (/*AUTOARG*/
 	// TODO: Assign the enable signal
 	assign memWbEn = 1'b1;
 
-	assign mem_cntrl_out = {mem_MemToReg,
+	assign mem_cntrl_out = {{5{1'b0}},
+							mem_MemToReg,
 							mem_Out,
 							mem_Dataout,
 							mem_OpCode,
 							mem_PC2,
-							mem_RegWrite,
-							mem_writeRegSel
+							mem_writeRegSel,
+							mem_RegWrite
 							};
+
 	reg64_en mem_wb_cntrl(.q(wb_cntrl_in), .d(mem_cntrl_out), .clk(clk), .rst(rst), .en(memWbEn));
-	assign {wb_MemToReg,
-			wb_Out,
-			wb_Dataout,
-			wb_OpCode,
-			wb_PC2,
-			wb_RegWrite,
-			wb_writeRegSel
-			} = wb_cntrl_in;
+	assign wb_MemToReg = wb_cntrl_in[58];
+	assign wb_Out = wb_cntrl_in[57:42];
+	assign wb_Dataout = wb_cntrl_in[41:26];
+	assign wb_OpCode = wb_cntrl_in[25:21];
+	assign wb_PC2 = wb_cntrl_in[20:5];
+	assign wb_writeRegSel = wb_cntrl_in[4:1];
+	assign wb_RegWrite = wb_cntrl_in[0];
 
 
 	//
@@ -531,7 +532,7 @@ module proc (/*AUTOARG*/
 		.readReg2Sel			(dec_readReg2Sel[2:0]),
 		.writeRegSel			(wb_writeRegSel[2:0]),
 		.writeData				(wb_writeData[15:0]),
-		.writeEn				(wb_writeEn)
+		.writeEn				(wb_RegWrite)
 		);
 
 	control c0(
