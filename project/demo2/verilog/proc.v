@@ -265,8 +265,8 @@ module proc (/*AUTOARG*/
 	assign dec_ImmDis[10:0] = dec_instruction[10:0];
 
 	// Subtraction signal
-	assign dec_subtraction = exe_OpCode[4]&exe_OpCode[3]&~exe_OpCode[2]&exe_OpCode[1]
-						&exe_OpCode[0]&~exe_Funct[1]&exe_Funct[0];
+	assign dec_subtraction = dec_OpCode[4]&dec_OpCode[3]&~dec_OpCode[2]&dec_OpCode[1]
+						&dec_OpCode[0]&~dec_Funct[1]&dec_Funct[0];
 
 	//rf
 	assign dec_writeRegSel[2:0] = (dec_OpCode[4:0] == 5'b10011)? dec_instruction[10:8] :

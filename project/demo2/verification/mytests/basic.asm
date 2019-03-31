@@ -13,6 +13,31 @@ nop
 nop
 nop
 nop
+addi r2, r4, 5
+nop
+nop
+nop
+nop
+addi r3, r1, 5
+nop
+nop
+nop
+nop
+addi r4, r2, -10
+nop
+nop
+nop
+nop
+addi r5, r3, 10
+nop
+nop
+nop
+nop
+addi r6, r1, 4
+nop
+nop
+nop
+nop
 andni r5, r6, 0
 nop
 nop
@@ -138,5 +163,6 @@ nop
 nop
 nop
 nop
+halt
 
 
