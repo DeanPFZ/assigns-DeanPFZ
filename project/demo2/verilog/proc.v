@@ -98,7 +98,6 @@ module proc (/*AUTOARG*/
 	wire dec_Cin;
 	wire dec_sign;
 	wire dec_rorSel;
-	wire dec_subtraction;
 	wire [15:0] dec_PC2;
 	wire [2:0]  dec_writeRegSel;
 
@@ -157,7 +156,6 @@ module proc (/*AUTOARG*/
 	wire [15:0] exe_B;
 	wire exe_Ofl;
 	wire exe_Zero;
-	wire exe_subtraction;
 	wire [2:0]exe_OutSel;
 	wire [15:0] exe_mirr_rd1;
 	wire exe_Carry;
@@ -166,7 +164,6 @@ module proc (/*AUTOARG*/
 	wire [15:0] exe_before_ROR;
 	wire [15:0] exe_after_ROR;
 	wire [15:0] exe_after_Branch;
-	wire [15:0] exe_negReadData2;
 	wire exe_ror_with_reg;
 	wire [15:0] exe_ShiftLeftValue;
 	wire CO_temp3, CO_temp4, CO_temp5;
@@ -264,18 +261,14 @@ module proc (/*AUTOARG*/
 	assign dec_Imm8[7:0] = dec_instruction[7:0];
 	assign dec_ImmDis[10:0] = dec_instruction[10:0];
 
-	// Subtraction signal
-	assign dec_subtraction = dec_OpCode[4]&dec_OpCode[3]&~dec_OpCode[2]&dec_OpCode[1]
-						&dec_OpCode[0]&~dec_Funct[1]&dec_Funct[0];
-
 	//rf
 	assign dec_writeRegSel[2:0] = (dec_OpCode[4:0] == 5'b10011)? dec_instruction[10:8] :
 								(dec_RegDst[1:0] == 2'b00)? dec_instruction[4:2]:
 								(dec_RegDst[1:0] == 2'b01)? dec_instruction[7:5]:
 								(dec_RegDst[1:0] == 2'b10)? dec_instruction[10:8]:
 								(dec_RegDst[1:0] == 2'b11)? 3'b111 : 3'b000; //3'b000 should never happen
-	assign dec_readReg1Sel[2:0] = dec_subtraction? dec_Rt[2:0] : dec_Rs[2:0];
-	assign dec_readReg2Sel[2:0] = dec_subtraction? dec_Rs[2:0] : dec_Rt[2:0];
+	assign dec_readReg1Sel[2:0] = dec_Rs[2:0];
+	assign dec_readReg2Sel[2:0] = dec_Rt[2:0];
 
 	assign dec_writeData = wb_writeData;
 	assign dec_writeEn = wb_RegWrite;
@@ -315,7 +308,8 @@ module proc (/*AUTOARG*/
 	assign exe_ImmDis = exe_sign_ext_in[10:0];
 
 	// Control Signal Pipeline Reg
-	assign dec_cntrl_out1 = {{6{1'b1}},
+	assign dec_cntrl_out1 = {dec_readReg2Sel,
+							dec_readReg1Sel,
 							dec_cntrlErr,
 							dec_RegDst,
 							dec_RegWrite,
@@ -344,12 +338,14 @@ module proc (/*AUTOARG*/
 							dec_Cin,
 							dec_sign,
 							dec_rorSel,
-							dec_subtraction,
+							1'b0,			// Placeholder, DO NOT REMOVE
 							dec_PC2,
 							dec_writeRegSel
 							};
 
 	reg64_en dec_cntl_sign1(.q(exe_cntrl_in1), .d(dec_cntrl_out1), .clk(clk), .rst(rst), .en(decExeEn));
+	assign exe_readReg2Sel = exe_cntrl_in1[63:61];
+	assign exe_readReg1Sel = exe_cntrl_in1[60:58];
 	assign exe_cntrlErr = exe_cntrl_in1[57];
 	assign exe_RegDst = exe_cntrl_in1[56:55];
 	assign exe_RegWrite = exe_cntrl_in1[54];
@@ -378,7 +374,6 @@ module proc (/*AUTOARG*/
 	assign exe_Cin = exe_cntrl_in1[22];
 	assign exe_sign = exe_cntrl_in1[21];
 	assign exe_rorSel = exe_cntrl_in1[20];
-	assign exe_subtraction = exe_cntrl_in1[19];
 	assign exe_PC2 = exe_cntrl_in1[18:3];
 	assign exe_writeRegSel = exe_cntrl_in1[2:0];
 
@@ -390,14 +385,6 @@ module proc (/*AUTOARG*/
 	assign exe_after_ROR[15:0] = exe_rorSel? exe_before_ROR[15:0] : exe_readData2[15:0];
 	assign exe_after_Branch[15:0] = exe_Branch? exe_readData1[15:0] : exe_after_ROR[15:0];
 
-	rca_16b add4(.A(~exe_readData2[15:0]), .B(16'b0), .C_in(1'b1),.S(exe_negReadData2[15:0]), .C_out(CO_temp4));
-
-/*
-*	MOVED ASSIGN TO DECODE
-*
-*	assign exe_subtraction = exe_OpCode[4]&exe_OpCode[3]&~exe_OpCode[2]&exe_OpCode[1]
-*						&exe_OpCode[0]&~exe_Funct[1]&exe_Funct[0];
-*/
 	assign exe_ror_with_reg = ~exe_rorSel? 0 : exe_OpCode[4]&exe_OpCode[3]&~exe_OpCode[2]
 						&exe_OpCode[1]&~exe_OpCode[0]&exe_Funct[1]&~exe_Funct[0];
 
@@ -406,7 +393,6 @@ module proc (/*AUTOARG*/
 	// B input to the ALU Module
 	assign exe_B[15:0] = (exe_OpCode[4:0] == 5'b01010) ? {{11{1'b0}}, exe_Imm5[4:0]} :
 						(exe_OpCode[4:0] == 5'b01011) ? {{11{1'b0}}, exe_Imm5[4:0]} :
-						(exe_subtraction)? exe_negReadData2 :
 						(exe_ror_with_reg) ? exe_ShiftLeftValue :
 						(exe_rorSel) ? exe_after_Branch :
 						(exe_ALUSrc2) ? {{11{exe_Imm5[4]}}, exe_Imm5[4:0]} : exe_after_Branch;
@@ -425,7 +411,6 @@ module proc (/*AUTOARG*/
 					(exe_OutSel == 3'b011) ? exe_PC2:
 					(exe_OutSel == 3'b100) ? {{8{exe_Imm8[7]}}, exe_Imm8} :
 					(exe_OutSel == 3'b101) ? {exe_readData1[7:0], exe_Imm8} : exe_aluOut;
-
 
 
 	//
