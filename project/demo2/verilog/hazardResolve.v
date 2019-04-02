@@ -9,12 +9,14 @@ module hazardResolve(wb_RegWrite,
 					exe_ReadReg1, 
 					exe_ReadReg2,
 					dec_ReadReg1, 
-					Reg1_EX-EXFwrd,
-					Reg1_MEM-EXFwrd,
-					Reg1_EX-DFwrd,
-					Reg1_MEM-DFwrd.
-					Reg2_EX-EXFwrd,
-					Reg2_MEM-EXFwrd
+					Reg1_EX_EXFwrd,
+					Reg1_MEM_EXFwrd,
+					Reg1_EX_DFwrd,
+					Reg1_MEM_DFwrd,
+					Reg2_EX_EXFwrd,
+					Reg2_MEM_EXFwrd,
+					Reg1_EX_EXFwrd_Stall,
+					Reg2_EX_EXFwrd_Stall
 					);
 					
 	input[2:0] wb_WriteReg, mem_WriteReg, exe_ReadReg1, 
@@ -27,12 +29,14 @@ module hazardResolve(wb_RegWrite,
 		  mem_DMemWrite,
 		  mem_DMemEn;
 		  
-	output Reg1_EX-EXFwrd,
-		   Reg1_MEM-EXFwrd,
-	       Reg1_EX-DFwrd,
-		   Reg1_MEM-DFwrd.
-		   Reg2_EX-EXFwrd,
-		   Reg2_MEM-EXFwrd;
+	output Reg1_EX_EXFwrd,
+		   Reg1_MEM_EXFwrd,
+		   Reg1_EX_DFwrd,
+		   Reg1_MEM_DFwrd,
+		   Reg2_EX_EXFwrd,
+		   Reg2_MEM_EXFwrd,
+		Reg1_EX_EXFwrd_Stall,
+		Reg2_EX_EXFwrd_Stall;
 		   
 	wire wb_DMemRead,
 		 mem_DMemRead;
@@ -40,33 +44,43 @@ module hazardResolve(wb_RegWrite,
 	assign wb_DMemRead = wb_DMemEn & ~wb_DMemWrite;
 	assign mem_DMemRead = mem_DMemEn & ~mem_DMemWrite;
 	
-	assign Reg1_EX-EXFwrd = mem_RegWrite?
+	assign Reg1_EX_EXFwrd = mem_RegWrite?
 									    (~mem_DMemRead)?
 													   (mem_WriteReg==exe_ReadReg1)?1'b1:1'b0
 													   :1'b0
 									    :1'b0;
 										
-	assign Reg2_EX-EXFwrd = mem_RegWrite?
+	assign Reg2_EX_EXFwrd = mem_RegWrite?
 									    (~mem_DMemRead)?
 													   (mem_WriteReg==exe_ReadReg2)?1'b1:1'b0
 													   :1'b0
 									    :1'b0;
+	assign Reg1_EX_EXFwrd_Stall = mem_RegWrite?
+									    (mem_DMemRead)?
+													   (mem_WriteReg==exe_ReadReg2)?1'b1:1'b0
+													   :1'b0
+									    :1'b0;
+	assign Reg2_EX_EXFwrd_Stall = mem_RegWrite?
+									    (mem_DMemRead)?
+													   (mem_WriteReg==exe_ReadReg2)?1'b1:1'b0
+													   :1'b0
+									    :1'b0;
 										
-	assign Reg1_MEM-EXFwrd = wb_RegWrite?
+	assign Reg1_MEM_EXFwrd = wb_RegWrite?
 									    (wb_WriteReg==exe_ReadReg1)?1'b1:1'b0
 						 			    :1'b0;
 				
-	assign Reg2_MEM-EXFwrd = wb_RegWrite?
+	assign Reg2_MEM_EXFwrd = wb_RegWrite?
 									    (wb_WriteReg==exe_ReadReg2)?1'b1:1'b0
 						 			    :1'b0;
 										
-	assign Reg1_EX-DFwrd = mem_RegWrite?
+	assign Reg1_EX_DFwrd = mem_RegWrite?
 									    (~mem_DMemRead)?
 													   (mem_WriteReg==dec_ReadReg1)?1'b1:1'b0
 													   :1'b0
 									    :1'b0;
 										
-	assign Reg1_MEM-DFwrd = wb_RegWrite?
+	assign Reg1_MEM_DFwrd = wb_RegWrite?
 									    (wb_WriteReg==dec_ReadReg1)?1'b1:1'b0
 						 			    :1'b0;
 										
