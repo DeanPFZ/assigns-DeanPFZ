@@ -8,6 +8,7 @@ module hazardResolve(wb_RegWrite,
 					mem_WriteReg, 
 					exe_ReadReg1, 
 					exe_ReadReg2,
+					exe_writeRegSel,
 					dec_ReadReg1, 
 					Reg1_EX_EXFwrd,
 					Reg1_MEM_EXFwrd,
@@ -20,7 +21,7 @@ module hazardResolve(wb_RegWrite,
 					);
 					
 	input[2:0] wb_WriteReg, mem_WriteReg, exe_ReadReg1, 
-			   exe_ReadReg2, dec_ReadReg1;
+			   exe_ReadReg2, exe_writeRegSel, dec_ReadReg1;
 			   
 	input wb_RegWrite,
 		  wb_DMemWrite,
@@ -76,7 +77,7 @@ module hazardResolve(wb_RegWrite,
 										
 	assign Reg1_EX_DFwrd = mem_RegWrite?
 									    (~mem_DMemRead)?
-													   (mem_WriteReg==dec_ReadReg1)?1'b1:1'b0
+													   (exe_writeRegSel==dec_ReadReg1)?1'b1:1'b0
 													   :1'b0
 									    :1'b0;
 										

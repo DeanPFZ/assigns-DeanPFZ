@@ -45,6 +45,8 @@ module proc (/*AUTOARG*/
 	wire [15:0] ftch_instruction;
 	wire [15:0] ftch_PC2;
 
+	wire ftch_branch_nop;
+
 	//
 	// Fetch/Decode Pipeline Reg Signals
 	//
@@ -61,6 +63,10 @@ module proc (/*AUTOARG*/
 	wire [10:0] dec_ImmDis;
 
 	wire [15:0] dec_instruction;
+
+	wire dec_post_HaltPC;
+
+	wire [15:0] dec_RSFeed;
 
 	//register file
 	wire [2:0]  dec_readReg1Sel;
@@ -245,12 +251,15 @@ module proc (/*AUTOARG*/
 	//
 	// Fetch Logic
 	//
-	assign ftch_HaltPC = (|ftch_post_PC) & dec_HaltPC & exe_HaltPC & mem_HaltPC & wb_HaltPC;
+	assign ftch_HaltPC = wb_HaltPC;
 	assign ftch_PC2_back = dec_PC2_back;
 	assign ftch_pre_PC[15:0] = ftch_HaltPC? ftch_post_PC : ftch_PC2_back;
+	wire ftchPCEn;
+	assign ftchPCEn = ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
+
 
 	//PC Reg
-	reg16_en regPC(.q(ftch_post_PC[15:0]), .d(ftch_pre_PC[15:0]), .clk(clk), .rst(rst), .en(ftchDecEn));
+	reg16_en regPC(.q(ftch_post_PC[15:0]), .d(ftch_pre_PC[15:0]), .clk(clk), .rst(rst), .en(ftchPCEn));
 	//reg16 regPC(.q(ftch_post_PC[15:0]), .d(ftch_pre_PC[15:0]), .clk(clk), .rst(rst));
 
 	// PC + 4 adder
@@ -262,9 +271,9 @@ module proc (/*AUTOARG*/
 	//
  
 	// TODO: Assign the enable signal
-	assign ftchDecEn = (Reg1_MEM_EXFwrd | Reg2_MEM_EXFwrd)? 1'b1 : ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
+	assign ftchDecEn = ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
  
-	assign ftchOut = {ftch_instruction[15:0], ftch_PC2[15:0]};
+	assign ftchOut = (ftch_branch_nop)? {16'b0000100000000000, ftch_PC2[15:0]} : {ftch_instruction[15:0], ftch_PC2[15:0]};
 	reg32_en fet_dec(.q(decIn), .d(ftchOut), .clk(clk), .rst(rst), .en(ftchDecEn));
 	assign dec_PC2 = decIn[15:0];
 	assign dec_instruction = decIn[31:16];
@@ -305,6 +314,8 @@ module proc (/*AUTOARG*/
 	// Wire to update the PC
 	assign dec_PC2_back[15:0] = (dec_PCSrc | dec_link) ? 
 								dec_PCSrc ? dec_added[15:0] : dec_PC2_after[15:0] : ftch_PC2;
+	//Branch COntrol
+	assign dec_RSFeed = Reg1_EX_DFwrd? exe_Out : dec_readData1;
 
 
 	//
@@ -329,6 +340,10 @@ module proc (/*AUTOARG*/
 	assign exe_Imm8 = exe_sign_ext_in[18:11];
 	assign exe_ImmDis = exe_sign_ext_in[10:0];
 
+	assign ftch_branch_nop = dec_PCSrc;
+
+	assign dec_post_HaltPC = (|ftch_post_PC)? dec_HaltPC : 1'b0;
+
 	// Control Signal Pipeline Reg
 	assign dec_cntrl_out1 = {dec_readReg2Sel,
 							dec_readReg1Sel,
@@ -347,7 +362,7 @@ module proc (/*AUTOARG*/
 							dec_Branch,
 							dec_BranchOp,
 							dec_disp,
-							dec_HaltPC,
+							dec_post_HaltPC,
 							dec_LBI,
 							dec_BTR,
 							dec_SLBI,
@@ -593,11 +608,13 @@ module proc (/*AUTOARG*/
 		);
 
 	branch_ctrl b0(
-		.Rs					(dec_readData1),
+		//input
+		.Rs					(dec_RSFeed),
 		.BranchOp				(dec_BranchOp),
 		.Branch					(dec_Branch),
 		.PCImm					(dec_PCImm),
 		.Jump					(dec_Jump),
+		//output
 		.PCSrc					(dec_PCSrc)
 		);
 
@@ -666,7 +683,8 @@ module proc (/*AUTOARG*/
 		.mem_DMemEn				(mem_DMemEn),
 		.mem_WriteReg				(mem_writeRegSel[2:0]), 
 		.exe_ReadReg1				(exe_readReg1Sel), 
-		.exe_ReadReg2				(exe_readReg2Sel),	
+		.exe_ReadReg2				(exe_readReg2Sel),
+		.exe_writeRegSel			(exe_writeRegSel),	
 		.dec_ReadReg1				(dec_readReg1Sel), 
 		//output
 		.Reg1_EX_EXFwrd				(Reg1_EX_EXFwrd),
