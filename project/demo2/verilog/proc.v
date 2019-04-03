@@ -153,7 +153,7 @@ module proc (/*AUTOARG*/
 	wire [15:0] exe_PC2;
 	wire [2:0] exe_readReg1Sel;
 	wire [2:0] exe_readReg2Sel;
-	wire [2:0] exe_writeRegSel;
+	wire [3:0] exe_writeRegSel;
 
 	wire [15:0] exe_readData1;
 	wire [15:0] exe_readData2;
@@ -687,7 +687,7 @@ module proc (/*AUTOARG*/
 		.mem_WriteReg				(mem_writeRegSel[2:0]), 
 		.exe_ReadReg1				(exe_readReg1Sel), 
 		.exe_ReadReg2				(exe_readReg2Sel),
-		.exe_writeRegSel			(exe_writeRegSel),	
+		.exe_writeRegSel			(exe_writeRegSel[2:0]),	
 		.exe_RegWrite				(exe_RegWrite),
 		.dec_ReadReg1				(dec_readReg1Sel), 
 		//output

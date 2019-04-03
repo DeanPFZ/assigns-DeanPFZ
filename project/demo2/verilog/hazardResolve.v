@@ -24,7 +24,7 @@ module hazardResolve(wb_RegWrite,
 					Reg2_EX_EXFwrd_Stall
 					);
 					
-	input[3:0] wb_WriteReg, mem_WriteReg, exe_ReadReg1, 
+	input[2:0] wb_WriteReg, mem_WriteReg, exe_ReadReg1, 
 			   exe_ReadReg2, exe_writeRegSel, dec_ReadReg1;
 			   
 	input wb_RegWrite,
