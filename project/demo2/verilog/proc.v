@@ -321,7 +321,7 @@ module proc (/*AUTOARG*/
 
 	assign dec_readData1 = Reg1_D_DFwrd? exe_Out : 
 			       Reg1_EX_DFwrd? mem_Out :
-			       Reg1_MEM_DFwrd? wb_Out :
+			       Reg1_MEM_DFwrd? wb_writeData :
 			       dec_readData1_rf;
 	//
 	// Decode/Execute Pipeline Reg
