@@ -20,6 +20,9 @@ module hazardResolve(wb_RegWrite,
 					Reg1_MEM_DFwrd,
 					Reg2_EX_EXFwrd,
 					Reg2_MEM_EXFwrd,
+					Reg2_D_DFwrd,
+					Reg2_EX_DFwrd,
+					Reg2_MEM_DFwrd,
 					Reg1_EX_EXFwrd_Stall,
 					Reg2_EX_EXFwrd_Stall
 					);
@@ -44,8 +47,11 @@ module hazardResolve(wb_RegWrite,
 		   Reg1_MEM_DFwrd,
 		   Reg2_EX_EXFwrd,
 		   Reg2_MEM_EXFwrd,
-		Reg1_EX_EXFwrd_Stall,
-		Reg2_EX_EXFwrd_Stall;
+		   Reg2_D_DFwrd,
+		   Reg2_EX_DFwrd,
+		   Reg2_MEM_DFwrd,
+		   Reg1_EX_EXFwrd_Stall,
+		   Reg2_EX_EXFwrd_Stall;
 		   
 	wire wb_DMemRead,
 	     mem_DMemRead,
@@ -98,6 +104,21 @@ module hazardResolve(wb_RegWrite,
 									    :1'b0;		
 	assign Reg1_MEM_DFwrd = wb_RegWrite?
 									    (wb_WriteReg==dec_ReadReg1)?1'b1:1'b0
+						 			    :1'b0;
+	
+	assign Reg2_D_DFwrd = exe_RegWrite?
+										(~exe_DMemRead)?
+													   (exe_writeRegSel==dec_ReadReg2)?1'b1:1'b0
+													   :1'b0
+										:1'b0;
+								
+	assign Reg2_EX_DFwrd = mem_RegWrite?
+									    (~mem_DMemRead)?
+													   (mem_WriteReg==dec_ReadReg2)?1'b1:1'b0
+													   :1'b0
+									    :1'b0;		
+	assign Reg2_MEM_DFwrd = wb_RegWrite?
+									    (wb_WriteReg==dec_ReadReg2)?1'b1:1'b0
 						 			    :1'b0;
 										
 endmodule
