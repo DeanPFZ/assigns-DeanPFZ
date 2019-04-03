@@ -153,7 +153,7 @@ module proc (/*AUTOARG*/
 	wire [15:0] exe_PC2;
 	wire [2:0] exe_readReg1Sel;
 	wire [2:0] exe_readReg2Sel;
-	wire [3:0] exe_writeRegSel;
+	wire [2:0] exe_writeRegSel;
 
 	wire [15:0] exe_readData1;
 	wire [15:0] exe_readData2;
@@ -241,7 +241,7 @@ module proc (/*AUTOARG*/
 	//
 	wire Reg1_EX_EXFwrd;
 	wire Reg1_MEM_EXFwrd;
-	wire Reg1_EX_DFwrd;
+	wire Reg1_D_DFwrd;
 	wire Reg1_MEM_DFwrd;
 	wire Reg2_EX_EXFwrd;
 	wire Reg2_MEM_EXFwrd;
@@ -315,7 +315,10 @@ module proc (/*AUTOARG*/
 	assign dec_PC2_back[15:0] = (dec_PCSrc | dec_link) ? 
 								dec_PCSrc ? dec_added[15:0] : dec_PC2_after[15:0] : ftch_PC2;
 	//Branch COntrol
-	assign dec_RSFeed = Reg1_EX_DFwrd? exe_Out : dec_readData1;
+	assign dec_RSFeed = Reg1_D_DFwrd? exe_Out : 
+						Reg1_EX_DFwrd? mem_Out :
+						Reg1_MEM_DFwrd? wb_Out :
+						dec_readData1;
 
 
 	//
@@ -690,6 +693,7 @@ module proc (/*AUTOARG*/
 		//output
 		.Reg1_EX_EXFwrd				(Reg1_EX_EXFwrd),
 		.Reg1_MEM_EXFwrd			(Reg1_MEM_EXFwrd),
+		.Reg1_D_DFwrd				(Reg1_D_DFwrd),
 		.Reg1_EX_DFwrd				(Reg1_EX_DFwrd),
 		.Reg1_MEM_DFwrd				(Reg1_MEM_DFwrd),
 		.Reg2_EX_EXFwrd				(Reg2_EX_EXFwrd),
