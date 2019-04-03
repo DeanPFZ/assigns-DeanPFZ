@@ -305,7 +305,7 @@ module proc (/*AUTOARG*/
 	assign dec_writeEn = wb_RegWrite;
 
 	// PC logic
-	assign dec_PC2_after[15:0] = (dec_link)? Reg1_D_DFwrd? exe_Out : dec_readData1[15:0] : dec_PC2[15:0];
+	assign dec_PC2_after[15:0] = (dec_link)? dec_readData1 : dec_PC2[15:0];
 
 	// displacement amount
 	assign dec_after_disp[15:0] = dec_disp? {{5{dec_ImmDis[10]}},dec_ImmDis[10:0]} : {{8{dec_Imm8[7]}},dec_Imm8[7:0]};
@@ -320,6 +320,7 @@ module proc (/*AUTOARG*/
 	assign dec_RSFeed = dec_readData1;
 
 	assign dec_readData1 = Reg1_D_DFwrd? exe_Out : 
+			      (mem_OpCode == 5'b00110 & dec_OpCode == 5'b00111 & Reg1_EX_DFwrd)? mem_PC2 :
 			       Reg1_EX_DFwrd? mem_Out :
 			       Reg1_MEM_DFwrd? wb_writeData :
 			       dec_readData1_rf;
