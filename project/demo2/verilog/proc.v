@@ -73,6 +73,7 @@ module proc (/*AUTOARG*/
 	wire [2:0]  dec_readReg2Sel;
 	wire [15:0] dec_writeData;
 	wire        dec_writeEn;
+	wire [15:0] dec_readData1_rf;
 	wire [15:0] dec_readData1;
 	wire [15:0] dec_readData2;
 
@@ -316,12 +317,12 @@ module proc (/*AUTOARG*/
 	assign dec_PC2_back[15:0] = (dec_PCSrc | dec_link) ? 
 								dec_PCSrc ? dec_added[15:0] : dec_PC2_after[15:0] : ftch_PC2;
 	//Branch COntrol
-	assign dec_RSFeed = Reg1_D_DFwrd? exe_Out : 
-						Reg1_EX_DFwrd? mem_Out :
-						Reg1_MEM_DFwrd? wb_Out :
-						dec_readData1;
+	assign dec_RSFeed = dec_readData1;
 
-
+	assign dec_readData1 = Reg1_D_DFwrd? exe_Out : 
+			       Reg1_EX_DFwrd? mem_Out :
+			       Reg1_MEM_DFwrd? wb_Out :
+			       dec_readData1_rf;
 	//
 	// Decode/Execute Pipeline Reg
 	//
@@ -557,7 +558,7 @@ module proc (/*AUTOARG*/
 	//
 	rf_bypass rf0(
 		// Outputs
-		.readData1				(dec_readData1[15:0]),
+		.readData1				(dec_readData1_rf[15:0]),
 		.readData2				(dec_readData2[15:0]),
 		.err					(dec_rfErr),
 		// Inputs
