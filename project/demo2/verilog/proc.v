@@ -334,8 +334,8 @@ module proc (/*AUTOARG*/
 	reg32_en dec_rf(.q(exe_rf_in), .d(dec_rf_out), .clk(clk), .rst(rst), .en(decExeEn));
 	//EX-EX and MEM-EX Forwarding: 
 	//LD is different because we will be reading from wb_DataOut instead of wb_Out
-	assign exe_readData1 = Reg1_EX_EXFwrd? mem_Out[15:0]:((wb_OpCode==5'b10001)&(Reg1_MEM_EXFwrd))? wb_Dataout[15:0]:((wb_OpCode!=5'b10001)&(Reg1_MEM_EXFwrd))? wb_Out[15:0]:exe_rf_in[31:16];
-	assign exe_readData2 = Reg2_EX_EXFwrd? mem_Out[15:0]:((wb_OpCode==5'b10001)&(Reg2_MEM_EXFwrd))? wb_Dataout[15:0]:((wb_OpCode!=5'b10001)&(Reg2_MEM_EXFwrd))? wb_Out[15:0]:exe_rf_in[15:0];
+	assign exe_readData1 = Reg1_EX_EXFwrd? mem_Out[15:0]:(Reg1_MEM_EXFwrd)? wb_writeData[15:0]:exe_rf_in[31:16];
+	assign exe_readData2 = Reg2_EX_EXFwrd? mem_Out[15:0]:(Reg2_MEM_EXFwrd)? wb_writeData[15:0]:exe_rf_in[15:0];
 
 	// Sign-ext Pipeline Reg
 	assign dec_sign_ext_out = {dec_Imm5[4:0], dec_Imm8[7:0], dec_ImmDis[10:0]};
