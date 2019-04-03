@@ -685,6 +685,7 @@ module proc (/*AUTOARG*/
 		.exe_ReadReg1				(exe_readReg1Sel), 
 		.exe_ReadReg2				(exe_readReg2Sel),
 		.exe_writeRegSel			(exe_writeRegSel),	
+		.exe_RegWrite				(exe_RegWrite),
 		.dec_ReadReg1				(dec_readReg1Sel), 
 		//output
 		.Reg1_EX_EXFwrd				(Reg1_EX_EXFwrd),
