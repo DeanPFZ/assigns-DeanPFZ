@@ -242,6 +242,7 @@ module proc (/*AUTOARG*/
 	wire Reg1_EX_EXFwrd;
 	wire Reg1_MEM_EXFwrd;
 	wire Reg1_D_DFwrd;
+	wire Reg1_EX_DFwrd;
 	wire Reg1_MEM_DFwrd;
 	wire Reg2_EX_EXFwrd;
 	wire Reg2_MEM_EXFwrd;
@@ -689,6 +690,8 @@ module proc (/*AUTOARG*/
 		.exe_ReadReg2				(exe_readReg2Sel),
 		.exe_writeRegSel			(exe_writeRegSel[2:0]),	
 		.exe_RegWrite				(exe_RegWrite),
+		.exe_DMemWrite				(exe_DMemWrite),
+		.exe_DMemEn					(exe_DMemEn),
 		.dec_ReadReg1				(dec_readReg1Sel), 
 		//output
 		.Reg1_EX_EXFwrd				(Reg1_EX_EXFwrd),
