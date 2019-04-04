@@ -6,7 +6,7 @@
 //Test immediate offset
 lbi r3, 0x03
 lbi r1, 0x00
-jalr r1, 2		// Go to next instruction
+jalr r1, 6		// Go to next instruction
 jal 0 //Just sets the PC of the next instruction to R7
 jalr r7, 2		// Go to next instruction
 lbi r3, 0x04
