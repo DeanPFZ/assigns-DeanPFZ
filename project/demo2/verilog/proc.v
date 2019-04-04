@@ -257,7 +257,7 @@ module proc (/*AUTOARG*/
 	//
 	// Fetch Logic
 	//
-	assign ftch_HaltPC = wb_HaltPC;
+	assign ftch_HaltPC =  wb_HaltPC;
 	assign ftch_PC2_back = dec_PC2_back;
 	assign ftch_pre_PC[15:0] = ftch_HaltPC? ftch_post_PC : ftch_PC2_back;
 	wire ftchPCEn;
@@ -277,7 +277,7 @@ module proc (/*AUTOARG*/
 	//
  
 	// TODO: Assign the enable signal
-	assign ftchDecEn = (Reg1_MEM_EXFwrd) ? 1'b1 : ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
+	assign ftchDecEn = (dec_post_HaltPC)? 1'b0 : (Reg1_MEM_EXFwrd) ? 1'b1 : ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
  
 	assign ftchOut = (ftch_branch_nop)? {16'b0000100000000000, ftch_PC2[15:0]} : {ftch_instruction[15:0], ftch_PC2[15:0]};
 	reg32_en fet_dec(.q(decIn), .d(ftchOut), .clk(clk), .rst(rst), .en(ftchDecEn));
@@ -337,7 +337,7 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	assign decExeEn =  (Reg1_MEM_EXFwrd)? 1'b1 : ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
+	assign decExeEn =  (exe_HaltPC)? 1'b0 : (Reg1_MEM_EXFwrd)? 1'b1 : ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
 
 	// Register File Pipeline Reg
 	assign dec_rf_out = {dec_readData1[15:0], dec_readData2[15:0]};
@@ -469,7 +469,7 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	assign exeMemEn = (Reg1_MEM_EXFwrd)? 1'b1 : ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
+	assign exeMemEn = (mem_HaltPC)? 1'b0 : (Reg1_MEM_EXFwrd)? 1'b1 : ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
 
 	assign exe_cntrl_out = {{2{1'b0}},
 							exe_readData2[15:0],
