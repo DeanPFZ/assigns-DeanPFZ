@@ -1,0 +1,6 @@
+../verification/mytests/add_after_ld.asm SUCCESS CPI:2.6 CYCLES:13 ICOUNT:5 IHITRATE: 0 DHITRATE: 0
+../verification/mytests/basic.asm SUCCESS CPI:4.9 CYCLES:168 ICOUNT:34 IHITRATE: 0 DHITRATE: 0
+../verification/mytests/halt.asm SUCCESS CPI:7.9 CYCLES:8 ICOUNT:1 IHITRATE: 0 DHITRATE: 0
+../verification/mytests/jump_hard.asm SUCCESS CPI:2.4 CYCLES:17 ICOUNT:7 IHITRATE: 0 DHITRATE: 0
+../verification/mytests/st_lbi.asm SUCCESS CPI:3.2 CYCLES:13 ICOUNT:4 IHITRATE: 0 DHITRATE: 0
+../verification/mytests/sub.asm SUCCESS CPI:5.5 CYCLES:22 ICOUNT:4 IHITRATE: 0 DHITRATE: 0
