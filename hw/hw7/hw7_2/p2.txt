@@ -1,1 +1,30 @@
 // Write your answer to Problem 2 (b) and (c) here
+//
+// Adam Czech, Pengfei Zhu, Hele Sha
+//
+
+2a) Explaination: In our assembly program, we are simulating the scenario where there is no branch prediction.
+Since we are predicting branch-not-taken and we are not taking the branch, if there is not branch prediction,
+we have to stall for two clock cycles and wait for the branch to return from the execution stage.
+The second scenario is simulating the case where branch prediction is enabled and we are not taking the branch.
+In this case, we execute the next instruction without waiting for the branch to return,
+which saves us two clock cycles of time.
+In the last scenario, we simulate the case where the branch prediction is enabled and we are taking the branch.
+In this case, since the very next instruction will execute no matter what, 
+we need to flush this instruction (nop in our test) because we are going to branch to another location. 
+Taking the branch with not-taken branch prediction will cost us one clock cycle of time.
+
+2b) Branch prediction is helpful because it reduces the number of stalls.
+Assume there is no branch prediction, 2 cycles will be wasted every time
+the processor encounters a branch instruction, stalling for the branch 
+decision to be made.
+If there is branch prediction and it was predicted correctly, no cycle
+will be wasted stalling;
+if it was predicted incorrectly, only 1 cycle will be wasted for flushing
+the incorrectly loaded instruction, so its performance will be better
+whether or not the branch is correctly predicted.
+ 
+2c) Branch prediction will not always take 1 cycle. If the branch is predicted correctly,
+the branch predicition will take no extra cycles. Branch prediction only needs 1 extra cycle
+if the branch prediction was wrong. Therefore, during normal execute a correctly predicted
+branch will take 1 cycle and an incorrectly predicted branch will take 2 cycles.  

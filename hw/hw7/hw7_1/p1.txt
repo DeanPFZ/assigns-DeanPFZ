@@ -1,1 +1,29 @@
 // Write your answer to Problem 1 (b) here
+//
+// Adam Czech, Pengfei Zhu, Hele Sha
+//
+
+// Assembly 1
+Memory to execute forwarding takes place between the thrid and forth instructions. 
+	ld r2, r1, 0
+	add r2, r1, r2
+After stalling for one clock cycle, MEM-EX forwarding happens and the value of r2
+gets forwarded to execution stage for add instruction. We also forward from instruction
+1 to instruction 3 using MEM-EX forwarding. Instruction 1 and 3 are shown below. 
+	lbi r1, 0x1
+	ld r2, r1, 0
+
+// Assembly 2
+This file should test EX-EX forwarding between the two intructions:
+	lbi r2, 0x2
+	add r1, r2, r2
+The immediate value of r2 gets forwarded for addition at the start of 
+EX stage
+
+// Assembly 3
+This file tests EX-D forwarding for branch resolve:
+	lbi r1, 0x0
+	beqz r1, 2
+The immediate value of r1 gets forwarded for branch resolution to ID stage.
+If the forwarding path works, subi will be skipped and addi will be executed.
+If not, both of them will be executed
