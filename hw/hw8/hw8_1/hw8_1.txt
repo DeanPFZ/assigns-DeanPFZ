@@ -1,0 +1,65 @@
+mem_system.v Interface
+Provided Output:
+    DataOut, Done, Stall, CacheHit, err,
+Providded Input:
+   Addr, DataIn, Rd, Wr, createdump, clk, rst
+
+// Cache/Mem module signals are CAPITALIZED
+
+STATES
+--------------------------------------------------------------------------------
+
+1. idle
+    - If Rd = 1
+        - Set inputs to the cache module
+            - ENABLE = 1
+            - INDEX = Addr[10:3]
+            - OFFSET = Addr[2:0]    // if Addr[0] = 1, set err = 1
+            - COMP  = 1
+            - WRITE = 0
+            - TAG_IN = Addr[15:11]
+            - DATA_IN = don't care
+            - VALID_IN = dont care
+            - CREATEDUMP = 0
+            - Next state: check_hit
+            - Store the input to mem_system.v in registers
+    - If Wr = 1
+        - Set inputs to the cache module
+            - ENABLE = 1
+            - INDEX = Addr[10:3]
+            - OFFSET = Addr[2:0]    // if Addr[0] = 1, set err = 1
+            - COMP = 1
+            - WRITE = 1
+            - TAG_IN = Addr[15:11]
+            - DATA_IN = DataIn
+            - VALID_IN
+            - CREATEDUMP = 0
+        - Next state: check_hit
+        - Store the input to mem_system.v in registers
+    - If createdump = 1
+        - set CREATEDUMP = 1
+        - Next state: idle
+    - If Rd = Wr = 1
+        - Set ERR = 1?
+        - Next state: check_hit
+    - Else
+        - Next state: idle
+        
+2. check_hit
+    - if HIT = 1
+        - set DONE = 1
+        - Next state: idle
+    - if HIT = 0 and Rd = 1
+        - Next state: miss_read
+    - if HIT = 0 and Wr = 1
+        - Next state: miss_write
+        
+3. miss_read
+    - if VALID = 1 and DIRTY = 0
+        - Don't need to write back to memory
+        - Get data from memory, write to cache, and set DataOut 
+    - if VALID = 1 and DIRTY = 1
+        - Need to write back to memory
+        - After write back, get data from memory, write to cache, and set DataOut
+
+4. miss_write
