@@ -179,6 +179,7 @@ module proc (/*AUTOARG*/
 	wire CO_temp3, CO_temp5;
 
 	wire [31:0] exe_rf_in;
+	wire [31:0] exe_rf_in_rf;
 	wire [31:0] exe_sign_ext_in;
 	wire [4:0] exe_Imm5;
 	wire [7:0] exe_Imm8;
@@ -337,11 +338,12 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	assign decExeEn =  (exe_HaltPC)? 1'b0 : (Reg1_MEM_EXFwrd)? 1'b1 : ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
-
+	//assign decExeEn =  (exe_HaltPC)? 1'b0 : (Reg1_MEM_EXFwrd)? 1'b1 : ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
+	assign decExeEn = exe_HaltPC?1'b0:(Reg1_EX_EXFwrd_Stall|Reg2_EX_EXFwrd_Stall)?1'b0:1'b1;
 	// Register File Pipeline Reg
 	assign dec_rf_out = {dec_readData1[15:0], dec_readData2[15:0]};
-	reg32_en dec_rf(.q(exe_rf_in), .d(dec_rf_out), .clk(clk), .rst(rst), .en(decExeEn));
+	reg32_en dec_rf(.q(exe_rf_in_rf), .d(dec_rf_out), .clk(clk), .rst(rst), .en(decExeEn));
+	assign exe_rf_in = (Reg1_EX_EXFwrd_Stall|Reg2_EX_EXFwrd_Stall)?32'h00000000:exe_rf_in_rf;
 	//EX-EX and MEM-EX Forwarding: 
 	//LD is different because we will be reading from wb_DataOut instead of wb_Out
 	assign exe_readData1 = Reg1_EX_EXFwrd? mem_Out[15:0]:(Reg1_MEM_EXFwrd)? wb_writeData[15:0]: (Reg1_EX_EXFwrd_Stall & wb_Reg1_EX_EXFwrd_Stall)? exe_readData1 : exe_rf_in[31:16];
@@ -469,9 +471,9 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	assign exeMemEn = (mem_HaltPC)? 1'b0 : (Reg1_MEM_EXFwrd)? 1'b1 : ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
-
-	assign exe_cntrl_out = {{2{1'b0}},
+	//assign exeMemEn = (mem_HaltPC)? 1'b0 : (Reg1_MEM_EXFwrd)? 1'b1 : ((mem_OpCode == 5'b10001)& (Reg1_EX_EXFwrd_Stall))? 1'b0 : ((mem_OpCode == 5'b10001)& (Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1;
+	assign exeMemEn = ~mem_HaltPC;
+	assign exe_cntrl_out = {			{2{1'b0}},
 							exe_readData2[15:0],
 							exe_HaltPC,
 							exe_MemToReg,
@@ -495,7 +497,9 @@ module proc (/*AUTOARG*/
 	assign mem_PC2 = mem_cntrl_in[20:5];
 	assign mem_RegWrite = mem_cntrl_in[4];
 	assign mem_writeRegSel = mem_cntrl_in[3:0];
-
+	wire mem_Reg1_EX_EXFwrd_Stall, mem_Reg2_EX_EXFwrd_Stall;
+	dff stall_1(.q(mem_Reg1_EX_EXFwrd_Stall), .d(Reg1_EX_EXFwrd_Stall), .clk(clk), .rst(rst));
+	dff stall_2(.q(mem_Reg2_EX_EXFwrd_Stall), .d(Reg2_EX_EXFwrd_Stall), .clk(clk), .rst(rst));
 
 	//
 	// Memory Logic
@@ -510,8 +514,8 @@ module proc (/*AUTOARG*/
 	// TODO: Assign the enable signal
 	assign memWbEn = 1'b1;
 
-	assign mem_cntrl_out = {Reg1_EX_EXFwrd_Stall,
-							Reg2_EX_EXFwrd_Stall,
+	assign mem_cntrl_out = {mem_Reg1_EX_EXFwrd_Stall,
+							mem_Reg2_EX_EXFwrd_Stall,
 							mem_HaltPC,
 							mem_DMemWrite,
 							mem_DMemEn,

@@ -89,15 +89,22 @@ module proc_hier_pbench();
          if (RegWrite) begin
             $fdisplay(trace_file,"REG: %d VALUE: 0x%04x",
                       WriteRegister,
-                      WriteData );            
+                      WriteData ); 
+			$display("REG: %d VALUE: 0x%04x",
+                      WriteRegister,
+                      WriteData ); 
          end
          if (MemRead) begin
             $fdisplay(trace_file,"LOAD: ADDR: 0x%04x VALUE: 0x%04x",
+                      MemAddress, MemDataOut );
+			$display("LOAD: ADDR: 0x%04x VALUE: 0x%04x",
                       MemAddress, MemDataOut );
          end
 
          if (MemWrite) begin
             $fdisplay(trace_file,"STORE: ADDR: 0x%04x VALUE: 0x%04x",
+                      MemAddress, MemDataIn  );
+			$display("STORE: ADDR: 0x%04x VALUE: 0x%04x",
                       MemAddress, MemDataIn  );
          end
          if (Halt) begin
@@ -113,7 +120,8 @@ module proc_hier_pbench();
             $fclose(sim_log_file);
             #5;
             $finish;
-         end 
+         end
+			$display("OpCode: %d", DUT.p0.wb_OpCode);
       end
       
    end
@@ -130,7 +138,7 @@ module proc_hier_pbench();
    assign PC = DUT.p0.ftch_post_PC;
    assign Inst = DUT.p0.ftch_instruction;
    
-   assign RegWrite = (DUT.p0.Reg1_EX_EXFwrd_Stall & DUT.p0.wb_Reg1_EX_EXFwrd_Stall)? 1'b0 : DUT.p0.dec_writeEn;
+   assign RegWrite = (DUT.p0.wb_OpCode == 5'b00001)?1'b0:(DUT.p0.wb_Reg1_EX_EXFwrd_Stall | DUT.p0.wb_Reg2_EX_EXFwrd_Stall)?1'b0: DUT.p0.wb_RegWrite;
    // Is register file being written to, one bit signal (1 means yes, 0 means no)
    //    
    assign WriteRegister = DUT.p0.wb_writeRegSel;
@@ -139,10 +147,10 @@ module proc_hier_pbench();
    assign WriteData = DUT.p0.wb_writeData;
    // Data being written to the register. (16 bits)
 	
-   assign MemRead =  DUT.p0.mem_DMemEn & ~DUT.p0.mem_DMemWrite & ~DUT.p0.wb_Reg1_EX_EXFwrd_Stall & ~DUT.p0.wb_Reg2_EX_EXFwrd_Stall;
+   assign MemRead =  (DUT.p0.wb_OpCode == 5'b00001)?1'b0:(DUT.p0.mem_Reg1_EX_EXFwrd_Stall | DUT.p0.mem_Reg2_EX_EXFwrd_Stall)?1'b0: (DUT.p0.mem_DMemEn & ~DUT.p0.mem_DMemWrite);
    // Is memory being read, one bit signal (1 means yes, 0 means no)
 
-   assign MemWrite = DUT.p0.mem_DMemWrite;
+   assign MemWrite = (DUT.p0.wb_OpCode == 5'b00001)?1'b0:(DUT.p0.mem_Reg1_EX_EXFwrd_Stall | DUT.p0.mem_Reg2_EX_EXFwrd_Stall)?1'b0: DUT.p0.mem_DMemWrite;
    // Is memory being written to (1 bit signal)
    
    assign MemAddress = DUT.p0.mem_Out;
