@@ -90,21 +90,14 @@ module proc_hier_pbench();
             $fdisplay(trace_file,"REG: %d VALUE: 0x%04x",
                       WriteRegister,
                       WriteData ); 
-			$display("REG: %d VALUE: 0x%04x",
-                      WriteRegister,
-                      WriteData ); 
          end
          if (MemRead) begin
             $fdisplay(trace_file,"LOAD: ADDR: 0x%04x VALUE: 0x%04x",
-                      MemAddress, MemDataOut );
-			$display("LOAD: ADDR: 0x%04x VALUE: 0x%04x",
                       MemAddress, MemDataOut );
          end
 
          if (MemWrite) begin
             $fdisplay(trace_file,"STORE: ADDR: 0x%04x VALUE: 0x%04x",
-                      MemAddress, MemDataIn  );
-			$display("STORE: ADDR: 0x%04x VALUE: 0x%04x",
                       MemAddress, MemDataIn  );
          end
          if (Halt) begin
@@ -121,7 +114,6 @@ module proc_hier_pbench();
             #5;
             $finish;
          end
-			$display("OpCode: %d", DUT.p0.wb_OpCode);
       end
       
    end
