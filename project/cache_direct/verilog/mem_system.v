@@ -38,7 +38,7 @@ module mem_system(/*AUTOARG*/
 	wire [15:0] mem_data_in, mem_data_out, mem_addr;
    wire mem_wr, mem_rd, mem_stall, mem_err;
 	wire [3:0]  mem_busy;
-   wire fsm_err, fsm_stall, fsm_done;
+   wire fsm_err, fsm_stall, fsm_done, fsm_hit;
    
    /* data_mem = 1, inst_mem = 0 *
     * needed for cache parameter */
@@ -93,6 +93,7 @@ module mem_system(/*AUTOARG*/
 					.mem_wr				(mem_wr),
 					.mem_rd				(mem_rd),
 					.mem_data_in		(mem_data_in),
+					.fsm_hit			(fsm_hit),
 					// Input
 					.DataIn_reg			(DataIn_reg),
 					.cache_data_out		(cache_data_out),
@@ -111,7 +112,7 @@ module mem_system(/*AUTOARG*/
    
 	assign DataOut = cache_data_out;
 	assign Done = fsm_done;	
-	assign CacheHit = cache_hit;
+	assign CacheHit = fsm_hit;
 	assign Stall = fsm_stall|mem_stall;
     assign err = (Addr_reg[0]==1'b1)|fsm_err|cache_err|mem_err;
 

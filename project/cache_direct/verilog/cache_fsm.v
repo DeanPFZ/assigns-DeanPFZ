@@ -3,7 +3,7 @@ module cache_fsm(
 	//Output
 	fsm_done, cache_data_in, cache_comp, cache_enable, cache_wr, cache_valid_in, 
 	fsm_stall, fsm_err, cache_tag_in, cache_index, cache_offset, mem_addr, mem_wr,
-	mem_rd, mem_data_in, 
+	mem_rd, mem_data_in, fsm_hit,
 	
 	// Input
 	DataIn_reg, cache_data_out, cache_hit, cache_dirty, cache_valid, Addr, Rd, Wr, clk, rst,
@@ -32,7 +32,7 @@ module cache_fsm(
 	input [4:0] cache_tag_out;
 
 	output reg fsm_done, cache_comp, cache_enable, cache_wr, cache_valid_in,
-				fsm_stall, fsm_err, mem_wr, mem_rd;
+				fsm_stall, fsm_err, mem_wr, mem_rd, fsm_hit;
 	output reg [4:0] cache_tag_in;
 	output reg [7:0] cache_index;
 	output reg [2:0] cache_offset;
@@ -60,6 +60,7 @@ module cache_fsm(
       mem_rd = 1'b0;
       fsm_err = 1'b0;
       fsm_stall = 1'b1;
+      fsm_hit = 1'b0;
      //fsm_data_out = cache_data_out;
       fsm_done = 1'b0;
       case(state)
@@ -73,6 +74,7 @@ module cache_fsm(
       	end
        	CHECK_HIT: begin
         	fsm_done = cache_hit & cache_valid;
+        	fsm_hit = cache_hit & cache_valid;
         	mem_data_in = (~cache_hit & cache_valid & cache_dirty)?cache_data_out:DataIn_reg;
         	mem_addr = (~cache_hit & cache_valid & cache_dirty)?{cache_tag_out,cache_index,3'b000}:
 						((cache_hit & ~cache_valid & Rd) | (~cache_hit & ~cache_dirty & Rd))?
@@ -81,7 +83,7 @@ module cache_fsm(
 			cache_offset = 3'b000;
 			cache_enable = 1'b1;
 			cache_wr = 1'b0;
-			fsm_stall = (cache_hit) ? 1'b0 : 1'b1;
+			fsm_stall = (cache_hit & cache_valid) ? 1'b0 : 1'b1;
 			mem_rd = ((cache_hit & ~cache_valid & Rd) | (~cache_hit & ~cache_dirty & Rd))? 1'b1 : 1'b0;
 			nxt_state = ((cache_hit & ~cache_valid & Rd) | (~cache_hit & ~cache_dirty & Rd))
 						? GET_MEM_DATA_1:
@@ -138,7 +140,7 @@ module cache_fsm(
 			cache_wr = 1'b1;
 			cache_valid_in = 1'b1;
 			cache_data_in = mem_DataOut;
-			nxt_state = GET_MEM_DATA_5;
+			nxt_state = REDO_READ;
 		end
 		// Now that the memory data is in the cache, redo the read instruction 
 		// This read should always hit
@@ -148,6 +150,9 @@ module cache_fsm(
 			cache_comp = 1'b1;
 			nxt_state = CHECK_HIT;
 		end
+
+		// TODO Add state that checks the REDO_READ Hit but does not assert hit
+		
 		//
 		// END OF MEMORY TO CACHE WRITE
 		//
