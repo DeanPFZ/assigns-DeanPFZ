@@ -23,10 +23,6 @@ module mem_system(/*AUTOARG*/
    output CacheHit;
    output err;
    
-   wire [15:0] Addr_reg, DataIn_reg;
-   wire [15:0] Addr_reg_in, DataIn_reg_in;
-   wire Rd_reg, Wr_reg;
-   wire Rd_reg_in, Wr_reg_in;
    wire cache_enable, cache_comp, cache_wr, cache_valid_in; 
    wire cache_dirty, cache_valid, cache_hit, cache_err;
 	wire [15:0] cache_data_out;
@@ -95,14 +91,14 @@ module mem_system(/*AUTOARG*/
 					.mem_data_in		(mem_data_in),
 					.fsm_hit			(fsm_hit),
 					// Input
-					.DataIn_reg			(DataIn_reg),
+					.DataIn				(DataIn),
 					.cache_data_out		(cache_data_out),
 					.cache_hit			(cache_hit),
 					.cache_dirty		(cache_dirty),
 					.cache_valid		(cache_valid),
-					.Addr				(Addr_reg),
-					.Rd					(Rd_reg),
-					.Wr					(Wr_reg),
+					.Addr				(Addr),
+					.Rd					(Rd),
+					.Wr					(Wr),
 					.clk				(clk),
 					.rst				(rst),
 					.cache_tag_out		(cache_tag_out),
@@ -114,18 +110,8 @@ module mem_system(/*AUTOARG*/
 	assign Done = fsm_done;	
 	assign CacheHit = fsm_hit;
 	assign Stall = fsm_stall|mem_stall;
-    assign err = (Addr_reg[0]==1'b1)|fsm_err|cache_err|mem_err;
+    assign err = (Addr[0]==1'b1)|fsm_err|cache_err|mem_err;
 
-	assign Addr_reg_in = (Stall) ? Addr_reg : Addr;
-	assign DataIn_reg_in = (Stall) ? DataIn_reg : DataIn;
-	assign Rd_reg_in = (Stall) ? Rd_reg : Rd;
-	assign Wr_reg_in = (Stall) ? Wr_reg : Wr;
-  
-   reg16 reg_Addr(.q(Addr_reg), .d(Addr_reg_in), .clk(clk), .rst(rst));
-   reg16 reg_DataIn(.q(DataIn_reg), .d(DataIn_reg_in), .clk(clk), .rst(rst));
-   dff reg_Rd(.q(Rd_reg), .d(Rd_reg_in), .clk(clk), .rst(rst));
-   dff reg_Wr(.q(Wr_reg), .d(Wr_reg_in), .clk(clk), .rst(rst));
-   
 endmodule // mem_system
 
 // DUMMY LINE FOR REV CONTROL :9:
