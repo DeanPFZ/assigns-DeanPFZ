@@ -86,6 +86,10 @@ module cache_fsm(
         	cache_enable = Rd^Wr;
         	cache_comp = Rd^Wr;
         	cache_wr = (~Rd)&Wr;
+			cache_data_in = DataIn;
+      		cache_tag_in = Addr[15:11];
+      		cache_index = Addr[10:3];
+      		cache_offset = Addr[2:0];
 			fsm_stall = 1'b0;
         	nxt_state = (Rd^Wr)?CHECK_HIT:IDLE;
       	end
@@ -94,12 +98,11 @@ module cache_fsm(
         	fsm_hit = cache_hit & cache_valid;
         	mem_data_in = (~cache_hit & cache_valid & cache_dirty)?cache_data_out:DataIn_reg;
         	mem_addr = (~cache_hit & cache_valid & cache_dirty)?{cache_tag_out,cache_index,3'b000}:
-						((cache_hit & ~cache_valid & Rd_reg) | (~cache_hit & ~cache_dirty & Rd_reg))?
+						((cache_hit & ~cache_valid) | (~cache_hit & ~cache_dirty))?
 						{cache_tag_in,cache_index, 3'b000} : Addr_reg;
-			cache_tag_in = cache_tag_out;
 			cache_offset = (~cache_hit & cache_valid & cache_dirty) ? 3'b000 : Addr_reg[2:0];
 			cache_enable = 1'b1;
-			cache_wr = 1'b0;
+			mem_wr = (~cache_hit & cache_valid & cache_dirty) ? 1'b1 : 1'b0;
 			mem_rd = ((cache_hit & ~cache_valid) | (~cache_hit & ~cache_dirty))? 1'b1 : 1'b0;
 			nxt_state = ((cache_hit & ~cache_valid) | (~cache_hit & ~cache_dirty))
 						? GET_MEM_DATA_1:
@@ -169,6 +172,7 @@ module cache_fsm(
 		end
 		REDO_DONE: begin
 			fsm_stall = 1'b1;
+        	cache_enable = 1'b1;
 			fsm_done = 1'b1;	
         	nxt_state = IDLE;
 		end
@@ -179,23 +183,12 @@ module cache_fsm(
 		//
 		// START CACHE TO MEM WRITE
 		//
-		// - Actually started in CHECK_HIT
-		// - Get 4 words of data from memory and write it to the cache
 		//
-		WRITE_BACK_MEM_WAIT: begin
-			cache_enable = 1'b1;
-			cache_wr = 1'b0;
-			cache_comp = 1'b0;
-			cache_offset = 3'b010;
-			mem_wr = 1'b1;
-        	mem_addr = {cache_tag_out,cache_index,3'b000};
-			nxt_state = WRITE_BACK_MEM_WAIT_1;
-		end
 		WRITE_BACK_MEM_WAIT_1: begin
 			cache_enable = 1'b1;
 			cache_wr = 1'b0;
 			cache_comp = 1'b0;
-			cache_offset = 3'b100;
+			cache_offset = 3'b010;
 			mem_wr = 1'b1;
         	mem_addr = {cache_tag_out,cache_index,3'b010};
 			nxt_state = WRITE_BACK_MEM_WAIT_2;
@@ -204,7 +197,7 @@ module cache_fsm(
 			cache_enable = 1'b1;
 			cache_wr = 1'b0;
 			cache_comp = 1'b0;
-			cache_offset = 3'b110;
+			cache_offset = 3'b100;
 			mem_wr = 1'b1;
         	mem_addr = {cache_tag_out,cache_index,3'b100};
 			nxt_state = WRITE_BACK_MEM_WAIT_3;
@@ -213,6 +206,7 @@ module cache_fsm(
 			cache_enable = 1'b1;
 			cache_wr = 1'b0;
 			cache_comp = 1'b0;
+			cache_offset = 3'b110;
 			mem_wr = 1'b1;
         	mem_addr = {cache_tag_out,cache_index,3'b110};
 			nxt_state = WRITE_BACK_MEM_WAIT_4;
