@@ -12,14 +12,14 @@ module cache_fsm(
 
    	localparam IDLE = 					5'b00000;
    	localparam CHECK_HIT = 				5'b00001;
-   	localparam WRITE_BACK_MEM_WAIT =	5'b00010;
+   	localparam WRITE_BACK_MEM_WAIT =	5'b00010;	// Not used
    	localparam WRITE_BACK_MEM_WAIT_1 = 	5'b00011;
    	localparam WRITE_BACK_MEM_WAIT_2 = 	5'b00100;
    	localparam WRITE_BACK_MEM_WAIT_3 = 	5'b00101;
    	localparam WRITE_BACK_MEM_WAIT_4 = 	5'b00110;
    	localparam WRITE_BACK_MEM_WAIT_5 = 	5'b00111;
    	localparam WRITE_BACK_MEM_WAIT_6 = 	5'b01000;
-   	localparam WRITE_BACK_MEM_DONE = 	5'b01001;
+   	localparam WRITE_BACK_MEM_DONE = 	5'b01001;	// Not used
    	localparam GET_MEM_DATA_1 = 		5'b01010;
    	localparam GET_MEM_DATA_2 = 		5'b01011;
    	localparam GET_MEM_DATA_3 = 		5'b01100;
@@ -227,7 +227,12 @@ module cache_fsm(
 		//
 		// END CACHE TO MEM WRITE
 		//
-		// TODO add default state
+
+		default: begin
+			//$display("ERROR time: %d", $time );
+			fsm_err = 1'b1;
+		end
+
       endcase
    end
 

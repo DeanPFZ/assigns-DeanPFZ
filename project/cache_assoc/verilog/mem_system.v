@@ -67,7 +67,7 @@ module mem_system(/*AUTOARG*/
 	// Victimway flipflop 
 	//
 	dff victimway(.q(vict_out), .d(vict_in), .clk(clk), .rst(rst));
-	assign vict_in = (Rd | Wr) ? ~vict_out : vict_out;
+	assign vict_in = ((Rd | Wr) & ~Stall) ? ~vict_out : vict_out;
 
 
 	// TODO: Assign outputs
