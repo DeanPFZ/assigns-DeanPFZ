@@ -26,7 +26,7 @@ module mem_system(/*AUTOARG*/
 	//
 	// Internal signals
 	//
-	wire hit, valid, dirty, evict_sel;
+	wire evict_sel;
 	wire vict_in, vict_out;
 
 	// generalized cache signals for fsm
@@ -67,7 +67,7 @@ module mem_system(/*AUTOARG*/
 	// Victimway flipflop 
 	//
 	dff victimway(.q(vict_out), .d(vict_in), .clk(clk), .rst(rst));
-	assign vict_in = (Rd | Wr) ? ~vict_in : vict_in;
+	assign vict_in = (Rd | Wr) ? ~vict_out : vict_out;
 
 
 	// TODO: Assign outputs
@@ -184,6 +184,7 @@ module mem_system(/*AUTOARG*/
 					((evict_sel) ? cache_valid_1: cache_valid_0);
 
 	assign cache_dirty = evict_sel ? cache_dirty_1 : cache_dirty_0;
+	assign cache_tag_out = evict_sel ? cache_tag_out_1 : cache_tag_out_0;
 
 	assign evict_sel = (~cache_valid_0) ? 1'b0 :
 						(~cache_valid_1) ? 1'b1 : vict_out;
