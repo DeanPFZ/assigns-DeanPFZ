@@ -26,7 +26,7 @@ module mem_system(/*AUTOARG*/
 	//
 	// Internal signals
 	//
-	wire hit, valid, dirty, evict_sel, cache_wr_0, cach_wr_1; 
+	wire hit, valid, dirty, evict_sel;
 	wire vict_in, vict_out;
 
 	// generalized cache signals for fsm
