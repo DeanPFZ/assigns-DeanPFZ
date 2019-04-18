@@ -186,11 +186,11 @@ module mem_system(/*AUTOARG*/
 	assign cache_dirty = evict_sel ? cache_dirty_1 : cache_dirty_0;
 	assign cache_tag_out = evict_sel ? cache_tag_out_1 : cache_tag_out_0;
 
-	assign evict_sel = (~cache_valid_0) ? 1'b0 :
-						(~cache_valid_1) ? 1'b1 : vict_out;
+	assign evict_sel = (~Stall) ? ((~cache_valid_0) ? 1'b0 :
+						(~cache_valid_1) ? 1'b1 : vict_out) : evict_sel;
 
-	assign cache_wr_0 = cache_wr ? (cache_hit_0 | (~evict_sel)) : 1'b0;
-	assign cache_wr_1 = cache_wr ? (cache_hit_1 | (~evict_sel)) : 1'b0;
+	assign cache_wr_0 = cache_wr ? ((cache_hit_0 & cache_hit_1 )?  (~evict_sel) : (cache_hit_0 | (~evict_sel))) : 1'b0;
+	assign cache_wr_1 = cache_wr ? ((cache_hit_0 & cache_hit_1 )?  (evict_sel) : (cache_hit_1 | (evict_sel))) : 1'b0;
    
 endmodule // mem_system
 
