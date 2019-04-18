@@ -83,10 +83,10 @@ module cache_fsm(
       case(state)
      	IDLE: begin
         	fsm_err = Rd&Wr;
-        	cache_enable = Rd^Wr;
-        	cache_comp = Rd^Wr;
-        	cache_wr = (~Rd)&Wr;
-			cache_data_in = DataIn;
+        	//cache_enable = Rd^Wr;
+        	//cache_comp = Rd^Wr;
+        	//cache_wr = (~Rd)&Wr;
+			//cache_data_in = DataIn;
       		cache_tag_in = Addr[15:11];
       		cache_index = Addr[10:3];
       		cache_offset = Addr[2:0];
@@ -96,12 +96,13 @@ module cache_fsm(
        	CHECK_HIT: begin
         	fsm_done = cache_hit & cache_valid;
         	fsm_hit = cache_hit & cache_valid;
+		cache_wr = (~Rd_reg)&Wr_reg&fsm_hit;
         	mem_data_in = (~cache_hit & cache_valid & cache_dirty)?cache_data_out:DataIn_reg;
         	mem_addr = (~cache_hit & cache_valid & cache_dirty)?{cache_tag_out,cache_index,3'b000}:
 						((cache_hit & ~cache_valid) | (~cache_hit & ~cache_dirty))?
 						{cache_tag_in,cache_index, 3'b000} : Addr_reg;
 			cache_offset = (~cache_hit & cache_valid & cache_dirty) ? 3'b000 : Addr_reg[2:0];
-			cache_enable = 1'b1;
+			cache_enable = Rd_reg^Wr_reg;
 			mem_wr = (~cache_hit & cache_valid & cache_dirty) ? 1'b1 : 1'b0;
 			mem_rd = ((cache_hit & ~cache_valid) | (~cache_hit & ~cache_dirty))? 1'b1 : 1'b0;
 			nxt_state = ((cache_hit & ~cache_valid) | (~cache_hit & ~cache_dirty))
