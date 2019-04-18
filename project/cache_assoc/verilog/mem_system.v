@@ -69,12 +69,6 @@ module mem_system(/*AUTOARG*/
 	dff victimway(.q(vict_out), .d(vict_in), .clk(clk), .rst(rst));
 	assign vict_in = ((Rd | Wr) & ~Stall) ? ~vict_out : vict_out;
 
-
-	// TODO: Assign outputs
-
-
-
-
    /* data_mem = 1, inst_mem = 0 *
     * needed for cache parameter */
    parameter memtype = 0;
@@ -168,7 +162,10 @@ module mem_system(/*AUTOARG*/
 
 
     assign cache_err = cache_err_0 | cache_err_1;
-	assign cache_data_out = cache_hit_0 ? cache_data_out_0 : cache_data_out_1;
+	assign cache_data_out = (cache_hit_0) ? cache_data_out_0 : 
+							(cache_hit_1) ? cache_data_out_1 :
+							(evict_sel) ? cache_data_out_1 : 
+							cache_data_out_0;
 	assign DataOut = cache_data_out;
 	assign Done = fsm_done;	
 	assign CacheHit = fsm_hit;
@@ -177,8 +174,6 @@ module mem_system(/*AUTOARG*/
 
 	assign cache_hit = (cache_tag_in == cache_tag_out_0) ? cache_hit_0 : cache_hit_1;
 
-	// TODO: figure out what variable name Lemar gave to the "curr_state" of the FSM
-	// REPLY from Lemar: No worries, I've figured that out.
 	assign cache_valid = (fsm_state == 5'b00001) ? // CHECK_HIT state
 					((cache_tag_in == cache_tag_out_0) ? cache_valid_0 : cache_valid_1) :
 					((evict_sel) ? cache_valid_1: cache_valid_0);
