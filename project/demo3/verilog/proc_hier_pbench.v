@@ -4,11 +4,11 @@
 module proc_hier_pbench();
 
    /* BEGIN DO NOT TOUCH */
-   
+
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
    // End of automatics
-   
+
 
    wire [15:0] PC;
    wire [15:0] Inst;           /* This should be the 15 bits of the FF that
@@ -26,22 +26,22 @@ module proc_hier_pbench();
    wire        ICacheHit;
    wire        DCacheReq;
    wire        ICacheReq;
-   
+
 
    wire        Halt;         /* Halt executed and in Memory or writeback stage */
-        
+
    integer     inst_count;
    integer     trace_file;
    integer     sim_log_file;
-     
+
    integer     DCacheHit_count;
    integer     ICacheHit_count;
    integer     DCacheReq_count;
    integer     ICacheReq_count;
-   
+
    proc_hier DUT();
 
-   
+
 
    initial begin
       $display("Hello world...simulation starting");
@@ -54,7 +54,7 @@ module proc_hier_pbench();
 
       trace_file = $fopen("verilogsim.ptrace");
       sim_log_file = $fopen("verilogsim.log");
-      
+
    end
 
    always @ (posedge DUT.c0.clk) begin
@@ -63,33 +63,33 @@ module proc_hier_pbench();
             inst_count = inst_count + 1;
          end
          if (DCacheHit) begin
-            DCacheHit_count = DCacheHit_count + 1;      
-         end    
+            DCacheHit_count = DCacheHit_count + 1;
+         end
          if (ICacheHit) begin
-            ICacheHit_count = ICacheHit_count + 1;      
-         end    
+            ICacheHit_count = ICacheHit_count + 1;
+         end
          if (DCacheReq) begin
-            DCacheReq_count = DCacheReq_count + 1;      
-         end    
+            DCacheReq_count = DCacheReq_count + 1;
+         end
          if (ICacheReq) begin
-            ICacheReq_count = ICacheReq_count + 1;      
-         end    
+            ICacheReq_count = ICacheReq_count + 1;
+         end
 
-         $fdisplay(sim_log_file, "SIMLOG:: Cycle %d PC: %8x I: %8x R: %d %3d %8x M: %d %d %8x %8x",
-                  DUT.c0.cycle_count,
-                  PC,
-                  Inst,
-                  RegWrite,
-                  WriteRegister,
-                  WriteData,
-                  MemRead,
-                  MemWrite,
-                  MemAddress,
-                  MemDataIn);
+         $fdisplay(sim_log_file, "SIMLOG:: Cycle %d PC: %8x I: %16b R: %d %3d %8x M: %d %d %8x %8x",
+                   DUT.c0.cycle_count,
+                   PC,
+                   Inst,
+                   RegWrite,
+                   WriteRegister,
+                   WriteData,
+                   MemRead,
+                   MemWrite,
+                   MemAddress,
+                   MemDataIn);
          if (RegWrite) begin
             $fdisplay(trace_file,"REG: %d VALUE: 0x%04x",
                       WriteRegister,
-                      WriteData );            
+                      WriteData );
          end
          if (MemRead) begin
             $fdisplay(trace_file,"LOAD: ADDR: 0x%04x VALUE: 0x%04x",
@@ -113,9 +113,9 @@ module proc_hier_pbench();
             $fclose(sim_log_file);
             #5;
             $finish;
-         end 
+         end
       end
-      
+
    end
 
    /* END DO NOT TOUCH */
@@ -126,58 +126,68 @@ module proc_hier_pbench();
 
    // Edit the example below. You must change the signal
    // names on the right hand side
-    
-   //assign PC = DUT.PC_Out;
-   //assign Inst = DUT.Instruction_f;
-   
-   assign RegWrite = DUT.p0.regWrite;
+
+   assign PC = DUT.p0.ftch_post_PC;
+   assign Inst = DUT.p0.ftch_instruction;
+
+   assign RegWrite = (DUT.p0.mem_stall) ? 1'b0 : 
+			//(DUT.p0.Reg1_EX_DFwrd_Stall) ? 1'b0 :
+			//(DUT.p0.Reg2_EX_DFwrd_Stall )? 1'b0 :
+      ((DUT.p0.mem_Reg1_EX_DFwrd_Do_Stall & DUT.p0.wb_Reg1_EX_DFwrd_Do_Stall)? 1'b0:
+			(DUT.p0.Reg2_EX_EXFwrd_Stall & DUT.p0.wb_Reg2_EX_EXFwrd_Stall)? 1'b0  :
+			(DUT.p0.Reg1_EX_EXFwrd_Stall & DUT.p0.wb_Reg1_EX_EXFwrd_Stall)? 1'b0 : DUT.p0.dec_writeEn);
    // Is register file being written to, one bit signal (1 means yes, 0 means no)
-   //    
-   assign WriteRegister = DUT.p0.DstwithJmout;
+   //
+   assign WriteRegister = DUT.p0.wb_writeRegSel;
    // The name of the register being written to. (3 bit signal)
-   
-   assign WriteData = DUT.p0.wData;
+
+   assign WriteData = DUT.p0.wb_writeData;
    // Data being written to the register. (16 bits)
-   
-   assign MemRead =  (DUT.p0.memRxout & ~DUT.p0.notdonem);
+
+   assign MemRead = (DUT.p0.mem_stall) ? 1'b0 : 
+			//(DUT.p0.Reg1_EX_DFwrd_Stall) ? 1'b0 :
+			//(DUT.p0.Reg2_EX_DFwrd_Stall)? 1'b0 :
+      ((DUT.p0.mem_Reg1_EX_DFwrd_Do_Stall & DUT.p0.wb_Reg1_EX_DFwrd_Do_Stall)? 1'b0:
+			(~DUT.p0.ftchPCEn & ~DUT.p0.ftchDecEn & ~DUT.p0.decExeEn & ~DUT.p0.exeMemEn)? 1'b1 :
+			DUT.p0.mem_DMemEn & ~DUT.p0.mem_DMemWrite & ~DUT.p0.wb_Reg1_EX_EXFwrd_Stall & ~DUT.p0.wb_Reg2_EX_EXFwrd_Stall);
    // Is memory being read, one bit signal (1 means yes, 0 means no)
-   
-   assign MemWrite = (DUT.p0.memWxout & ~DUT.p0.notdonem);
+
+   assign MemWrite = (DUT.p0.mem_stall) ? 1'b0 : DUT.p0.mem_DMemWrite;
    // Is memory being written to (1 bit signal)
-   
-   assign MemAddress = DUT.p0.data1out;
+
+   assign MemAddress = DUT.p0.mem_Out;
    // Address to access memory with (for both reads and writes to memory, 16 bits)
-   
-   assign MemDataIn = DUT.p0.data2out;
+
+   assign MemDataIn = DUT.p0.mem_readData2;
    // Data to be written to memory for memory writes (16 bits)
-   
-   assign MemDataOut = DUT.p0.readData;
+
+   assign MemDataOut = DUT.p0.mem_Dataout;
    // Data read from memory for memory reads (16 bits)
 
    // new added 05/03
-   assign ICacheReq = DUT.p0.readData;
+   assign ICacheReq = ~DUT.p0.instruct_Stall;
    // Signal indicating a valid instruction read request to cache
    // Above assignment is a dummy example
-   
-   assign ICacheHit = DUT.p0.readData;
+
+   assign ICacheHit = DUT.p0.instruct_Done & DUT.p0.instruct_CacheHit;
    // Signal indicating a valid instruction cache hit
    // Above assignment is a dummy example
 
-   assign DCacheReq = DUT.p0.readData;
+   assign DCacheReq = ~DUT.p0.data_Stall & (DUT.p0.data_Wr | DUT.p0.data_Rd);
    // Signal indicating a valid instruction data read or write request to cache
    // Above assignment is a dummy example
-   //    
-   assign DCacheHit = DUT.p0.readData;
+   //
+   assign DCacheHit = DUT.p0.data_Done & DUT.p0.data_CacheHit;
    // Signal indicating a valid data cache hit
    // Above assignment is a dummy example
-   
-   assign Halt = DUT.p0.haltxout;
+
+   assign Halt = DUT.p0.ftch_HaltPC;
    // Processor halted
-   
-   
+
+
    /* Add anything else you want here */
 
-   
+
 endmodule
 
 // DUMMY LINE FOR REV CONTROL :0:

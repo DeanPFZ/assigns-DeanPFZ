@@ -4,3 +4,4 @@
 ../verification/mytests/st_lbi.asm
 ../verification/mytests/sub.asm
 ../verification/mytests/add_after_ld.asm
+../verification/mytests/unaligned_simple.asm
