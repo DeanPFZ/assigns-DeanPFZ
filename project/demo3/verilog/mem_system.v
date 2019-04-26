@@ -170,7 +170,7 @@ module mem_system(/*AUTOARG*/
 	assign Done = fsm_done;	
 	assign CacheHit = fsm_hit;
 	assign Stall = fsm_stall|mem_stall;
-    assign err = (Addr[0]==1'b1)|fsm_err|cache_err|mem_err;
+    assign err = (Rd | Wr) ? ((Addr[0]==1'b1)|fsm_err|cache_err|mem_err) : 1'b0;
 
 	assign cache_hit = (cache_tag_in == cache_tag_out_0) ? cache_hit_0 : cache_hit_1;
 

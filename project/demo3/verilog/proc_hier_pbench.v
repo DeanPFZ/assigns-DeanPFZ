@@ -133,9 +133,9 @@ module proc_hier_pbench();
    assign RegWrite = (DUT.p0.mem_stall) ? 1'b0 : 
 			//(DUT.p0.Reg1_EX_DFwrd_Stall) ? 1'b0 :
 			//(DUT.p0.Reg2_EX_DFwrd_Stall )? 1'b0 :
-      ((DUT.p0.mem_Reg1_EX_DFwrd_Do_Stall & DUT.p0.wb_Reg1_EX_DFwrd_Do_Stall)? 1'b0:
+      			(DUT.p0.mem_Reg1_EX_DFwrd_Do_Stall & DUT.p0.wb_Reg1_EX_DFwrd_Do_Stall)? 1'b0:
 			(DUT.p0.Reg2_EX_EXFwrd_Stall & DUT.p0.wb_Reg2_EX_EXFwrd_Stall)? 1'b0  :
-			(DUT.p0.Reg1_EX_EXFwrd_Stall & DUT.p0.wb_Reg1_EX_EXFwrd_Stall)? 1'b0 : DUT.p0.dec_writeEn);
+			(DUT.p0.Reg1_EX_EXFwrd_Stall & DUT.p0.wb_Reg1_EX_EXFwrd_Stall)? 1'b0 : DUT.p0.dec_writeEn;
    // Is register file being written to, one bit signal (1 means yes, 0 means no)
    //
    assign WriteRegister = DUT.p0.wb_writeRegSel;
