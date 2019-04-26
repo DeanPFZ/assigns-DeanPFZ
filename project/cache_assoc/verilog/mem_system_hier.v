@@ -3,11 +3,11 @@
 /* $Rev: 77 $ */
 
 module mem_system_hier(/*AUTOARG*/
-   // Outputs
-   DataOut, Done, Stall, CacheHit, 
-   // Inputs
-   Addr, DataIn, Rd, Wr, createdump
-   );
+					   // Outputs
+					   DataOut, Done, Stall, CacheHit, 
+					   // Inputs
+					   Addr, DataIn, Rd, Wr, createdump
+					   );
    
    
    input [15:0] Addr;
