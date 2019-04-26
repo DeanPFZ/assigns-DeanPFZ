@@ -94,11 +94,11 @@ module cache_fsm(
         	//nxt_state = (Rd^Wr)?CHECK_HIT:IDLE;
 			fsm_done = cache_hit & cache_valid;
         	fsm_hit = cache_hit & cache_valid;
-        	mem_data_in = (~cache_hit & cache_valid & cache_dirty)?cache_data_out:DataIn_reg;
+        	mem_data_in = (~cache_hit & cache_valid & cache_dirty)?cache_data_out:DataIn;
         	mem_addr = (~cache_hit & cache_valid & cache_dirty)?{cache_tag_out,cache_index,3'b000}:
 						((cache_hit & ~cache_valid) | (~cache_hit & ~cache_dirty))?
-						{cache_tag_in,cache_index, 3'b000} : Addr_reg;
-			cache_offset = (~cache_hit & cache_valid & cache_dirty) ? 3'b000 : Addr_reg[2:0];
+						{cache_tag_in,cache_index, 3'b000} : Addr;
+			cache_offset = (~cache_hit & cache_valid & cache_dirty) ? 3'b000 : Addr[2:0];
 			cache_enable = 1'b1;
 			mem_wr = (~cache_hit & cache_valid & cache_dirty) ? 1'b1 : 1'b0;
 			mem_rd = ((cache_hit & ~cache_valid) | (~cache_hit & ~cache_dirty))? 1'b1 : 1'b0;
@@ -106,7 +106,7 @@ module cache_fsm(
 						? GET_MEM_DATA_1:
 						((~cache_hit & cache_valid & cache_dirty) ? WRITE_BACK_MEM_WAIT_1 : IDLE);
       	end
-       	CHECK_HIT: begin
+       	/*CHECK_HIT: begin
         	fsm_done = cache_hit & cache_valid;
         	fsm_hit = cache_hit & cache_valid;
         	mem_data_in = (~cache_hit & cache_valid & cache_dirty)?cache_data_out:DataIn_reg;
@@ -120,7 +120,7 @@ module cache_fsm(
 			nxt_state = ((cache_hit & ~cache_valid) | (~cache_hit & ~cache_dirty))
 						? GET_MEM_DATA_1:
 						((~cache_hit & cache_valid & cache_dirty) ? WRITE_BACK_MEM_WAIT_1 : IDLE);
-       	end
+       	end*/
 
 		//
 		// START OF MEM TO CACHE WRITE
