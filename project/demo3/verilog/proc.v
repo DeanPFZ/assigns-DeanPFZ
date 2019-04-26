@@ -248,8 +248,7 @@ module proc (/*AUTOARG*/
 	wire exeMemEn;
 	wire memWbEn;
 	wire mem_stall;
-	assign mem_stall = (instruct_Stall & instruct_Done) ? 1'b0 : 
-				(data_Stall & data_Done) ? 1'b0 : (instruct_Stall | data_Stall);
+	assign mem_stall = (instruct_Stall | data_Stall);
 
 	//
 	// Data Hazard Detection Signals
