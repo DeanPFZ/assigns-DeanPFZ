@@ -248,7 +248,7 @@ module proc (/*AUTOARG*/
 	wire exeMemEn;
 	wire memWbEn;
 	wire mem_stall;
-	assign mem_stall = instruct_Stall | data_Stall;
+	assign mem_stall = (instruct_Stall | data_Stall);
 
 	//
 	// Data Hazard Detection Signals
@@ -325,6 +325,9 @@ module proc (/*AUTOARG*/
 	assign dec_PC2 = decIn[15:0];
 	assign dec_instruction = decIn[31:16];
 
+	
+	wire [15:0] dec_post_PC;
+	reg16_en pcEn(.q(dec_post_PC), .d(ftch_post_PC), .clk(clk), .rst(rst_pipe), .en(ftchDecEn));
 
 	//
 	// Decode Logic
@@ -397,7 +400,7 @@ module proc (/*AUTOARG*/
 
 	assign ftch_branch_nop = dec_PCSrc;
 
-	assign dec_post_HaltPC = (|ftch_post_PC)? dec_HaltPC : 1'b0;
+	assign dec_post_HaltPC = (|dec_post_PC)? dec_HaltPC : 1'b0;
 
 	// Control Signal Pipeline Reg
 	assign dec_cntrl_out1 = {dec_readReg2Sel,
@@ -604,7 +607,7 @@ module proc (/*AUTOARG*/
 	//
 	// Fetch Modules
 	//
-	stallmem instruction_memory(
+	mem_system #(0) instruction_memory(
 		//Output
 		.DataOut				(ftch_instruction[15:0]),
 		.err					(instruct_mem_err),
@@ -732,7 +735,7 @@ module proc (/*AUTOARG*/
 	//
 	assign data_Wr = (mem_DMemEn & mem_DMemWrite);
 	assign data_Rd = (mem_DMemEn & ~mem_DMemWrite);
-	stallmem data_memory(
+	mem_system #(1) data_memory(
 		//Output
 		.DataOut				(mem_Dataout[15:0]),
 		.err					(data_mem_err),
