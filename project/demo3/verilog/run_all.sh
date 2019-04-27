@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TEST_SEED="-seed 45"
+TEST_SEED=""
 
 mkdir ../verification/results/
 

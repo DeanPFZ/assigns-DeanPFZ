@@ -250,8 +250,16 @@ module proc (/*AUTOARG*/
 	wire exeMemEn;
 	wire memWbEn;
 	wire mem_stall;
-	assign mem_stall = (instruct_Stall & instruct_Done) ? 1'b0 : 
-				(data_Stall & data_Done) ? 1'b0 : (instruct_Stall | data_Stall);
+	assign mem_stall = (instruct_Stall & instruct_Done) ? (data_Stall & ~data_Done) :
+				(data_Stall & data_Done) ? (instruct_Stall &  ~instruct_Done): ((data_Stall & ~data_Done) | (instruct_Stall &  ~instruct_Done));
+	wire add_miss_instruction;
+	assign add_miss_instruction = mem_stall & data_Done & data_Stall;
+	wire add_miss_instruction_post;
+	wire [15:0] add_miss_instruction_reg_input;
+	wire [15:0] add_miss_instruction_reg_output;
+	assign add_miss_instruction_reg_input = {{15{1'b0}},add_miss_instruction};
+	reg16 add_miss_instruction_reg(.q(add_miss_instruction_reg_output), .d(add_miss_instruction_reg_input), .clk(clk), .rst(rst_pipe));
+	assign add_miss_instruction_post = add_miss_instruction_reg_output[0];
 
 	//
 	// Data Hazard Detection Signals
@@ -313,7 +321,8 @@ module proc (/*AUTOARG*/
 	assign ftch_PC2_back = dec_PC2_back;
 	assign ftch_pre_PC[15:0] = ftch_HaltPC? ftch_post_PC : ftch_PC2_back;
 	wire ftchPCEn;
-	assign ftchPCEn = (mem_stall) ? 1'b0 : 
+	assign ftchPCEn = (mem_stall) ? 1'b0 :
+	(data_Stall & data_Done)? 1'b1 :
 	(instruct_Stall & instruct_Done)? 1'b0 :
 	((Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : (Reg1_EX_EXFwrd_Stall & (~wb_Reg1_EX_EXFwrd_Stall))? 1'b0: (Reg2_EX_EXFwrd_Stall & (~wb_Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1);
 
@@ -339,7 +348,7 @@ module proc (/*AUTOARG*/
 	wire [15:0] ftchOut_2;
 	assign ftchOut_2 = {{15{1'b0}},ftch_branch_nop};
 	wire [15:0] decIn_2;
-	
+
 
 	reg16_en fet_dec_2(.q(decIn_2), .d(ftchOut_2), .clk(clk), .rst(rst_pipe), .en(ftchDecEn));
 	assign ftch_branch_nop_clocked = decIn_2[0];
@@ -347,9 +356,9 @@ module proc (/*AUTOARG*/
 	reg16_en fet_dec_0(.q(decIn_0), .d(ftchOut_0), .clk(clk), .rst(rst_pipe), .en(ftchDecEn));
 	reg16_en fet_dec_1(.q(decIn_1), .d(ftchOut_1), .clk(clk), .rst(rst_pipe), .en(ftchDecEn & ftchPCEn));
 	assign dec_PC2 = decIn_1;
-	assign dec_instruction = (instruct_Stall & instruct_Done)? {16'b0000100000000000} : decIn_0;
+	assign dec_instruction = (instruct_Stall & instruct_Done & ~add_miss_instruction_post)? {16'b0000100000000000} : decIn_0;
 
-	
+
 	wire [15:0] dec_post_PC;
 	reg16_en pcEn(.q(dec_post_PC), .d(ftch_post_PC), .clk(clk), .rst(rst_pipe), .en(ftchDecEn));
 
@@ -428,7 +437,7 @@ module proc (/*AUTOARG*/
 	assign branch_input = {{15{1'b0}},ftch_branch_nop};
 	reg16 branch_reg(.q(branch_output), .d(branch_input), .clk(clk), .rst(rst));
 	assign ftch_branch_nop_post = branch_output[0];
-	
+
 
 	assign dec_post_HaltPC = (|dec_post_PC)? dec_HaltPC : 1'b0;
 
@@ -635,7 +644,7 @@ module proc (/*AUTOARG*/
 			(Reg2_EX_EXFwrd_Stall & wb_Reg2_EX_EXFwrd_Stall)? 1'b0  :
 			(Reg1_EX_EXFwrd_Stall & wb_Reg1_EX_EXFwrd_Stall)? 1'b0 : dec_writeEn;
 
-	
+
 	assign instruct_input = {{14{1'b0}},instruct_Stall,instruct_CacheHit};
 	reg16 instruct_reg(.q(instruct_output), .d(instruct_input), .clk(clk), .rst(rst));
 	assign instruct_Stall_post = instruct_output[1];
