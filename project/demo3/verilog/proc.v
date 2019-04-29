@@ -302,7 +302,7 @@ module proc (/*AUTOARG*/
 	assign ftch_PC2_back = dec_PC2_back;
 	assign ftch_pre_PC[15:0] = ftch_HaltPC? ftch_post_PC : ftch_PC2_back;
 	wire ftchPCEn;
-	assign ftchPCEn = (mem_stall) ? 1'b0 : ((Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : (Reg1_EX_EXFwrd_Stall & (~wb_Reg1_EX_EXFwrd_Stall))? 1'b0: (Reg2_EX_EXFwrd_Stall & (~wb_Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1);
+	assign ftchPCEn = (mem_stall) ? 1'b0 : (Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? 1'b0 :(Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : 1'b1;
 
 
 	//PC Reg
@@ -318,7 +318,7 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	assign ftchDecEn = (mem_stall) ? 1'b0 : ((Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : (dec_post_HaltPC)? 1'b0 : (Reg1_EX_EXFwrd_Stall & (~wb_Reg1_EX_EXFwrd_Stall))? 1'b0 : (Reg2_EX_EXFwrd_Stall & (~wb_Reg2_EX_EXFwrd_Stall))? 1'b0 : 1'b1);
+	 assign ftchDecEn = (mem_stall) ? 1'b0 : (Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? 1'b0 :(Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : (dec_post_HaltPC)? 1'b0 : 1'b1;
 
 	assign ftchOut = (ftch_branch_nop)? {16'b0000100000000000, ftch_PC2[15:0]} : {ftch_instruction[15:0], ftch_PC2[15:0]};
 	reg32_en fet_dec(.q(decIn), .d(ftchOut), .clk(clk), .rst(rst_pipe), .en(ftchDecEn));
@@ -378,7 +378,7 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	assign decExeEn =  (mem_stall) ? 1'b0 : ((Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : (exe_HaltPC)? 1'b0 : (Reg1_EX_EXFwrd_Stall & (~wb_Reg1_EX_EXFwrd_Stall))? 1'b0 : (Reg2_EX_EXFwrd_Stall & (~wb_Reg2_EX_EXFwrd_Stall))? 1'b0: 1'b1);
+	assign decExeEn =  (mem_stall) ? 1'b0 : (Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? 1'b0 : (Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : (exe_HaltPC)? 1'b0 : 1'b1;
 
 	// Register File Pipeline Reg
 	assign dec_rf_out = {dec_readData1[15:0], dec_readData2[15:0]};
@@ -510,9 +510,9 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	assign exeMemEn = (mem_stall) ? 1'b0 : ((mem_HaltPC)? 1'b0 :(Reg1_EX_EXFwrd_Stall & (~wb_Reg1_EX_EXFwrd_Stall))? 1'b0 : (Reg2_EX_EXFwrd_Stall & (~wb_Reg2_EX_EXFwrd_Stall))? 1'b0: 1'b1);
+	assign exeMemEn = (mem_stall) ? 1'b0 : (mem_HaltPC)? 1'b0 : 1'b1;
 
-	assign exe_cntrl_out = {{2{1'b0}},
+	assign exe_cntrl_out = (Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? {64{1'b0}} : {{2{1'b0}},
 							exe_readData2[15:0],
 							exe_HaltPC,
 							exe_MemToReg,
@@ -593,17 +593,32 @@ module proc (/*AUTOARG*/
 			//(Reg2_EX_DFwrd_Stall)? 1'b0 :
 			(mem_Reg1_EX_DFwrd_Do_Stall & wb_Reg1_EX_DFwrd_Do_Stall)? 1'b0:
 			(~ftchPCEn & ~ftchDecEn & ~decExeEn & ~exeMemEn)? 1'b1 :
-			mem_DMemEn & ~mem_DMemWrite & ~wb_Reg1_EX_EXFwrd_Stall & ~wb_Reg2_EX_EXFwrd_Stall;
+			mem_DMemEn & ~mem_DMemWrite;
 	assign RegWrite =
 			//(Reg1_EX_DFwrd_Stall) ? 1'b0 :
 			//(Reg2_EX_DFwrd_Stall )? 1'b0 :
-			(mem_Reg1_EX_DFwrd_Do_Stall & wb_Reg1_EX_DFwrd_Do_Stall)? 1'b0:
-			(Reg2_EX_EXFwrd_Stall & wb_Reg2_EX_EXFwrd_Stall)? 1'b0  :
-			(Reg1_EX_EXFwrd_Stall & wb_Reg1_EX_EXFwrd_Stall)? 1'b0 : dec_writeEn;
+			(mem_Reg1_EX_DFwrd_Do_Stall & wb_Reg1_EX_DFwrd_Do_Stall)? 1'b0 : dec_writeEn;
 
 	//
 	// Fetch Modules
 	//
+	assign instruct_Done = 1'b0;
+	assign instruct_Stall = 1'b0;
+	assign instruct_CacheHit = 1'b0;
+	assign instruct_mem_err = 1'b0;
+	memory2c instruction_memory(
+		//Output
+		.data_out				(ftch_instruction[15:0]),
+		//Inputs
+		.data_in				(16'b0),
+		.addr					(ftch_post_PC[15:0]),
+		.enable					(1'b1),
+		.wr					(1'b0),
+		.createdump				(1'b0),
+		.clk					(clk),
+		.rst					(rst)
+		);
+/*
 	stallmem instruction_memory(
 		//Output
 		.DataOut				(ftch_instruction[15:0]),
@@ -620,6 +635,7 @@ module proc (/*AUTOARG*/
 		.clk					(clk),
 		.rst					(rst)
 		);
+*/
 
 	//
 	// Decode Modules
@@ -732,6 +748,23 @@ module proc (/*AUTOARG*/
 	//
 	assign data_Wr = (mem_DMemEn & mem_DMemWrite);
 	assign data_Rd = (mem_DMemEn & ~mem_DMemWrite);
+	assign data_Done = 1'b0;
+	assign data_Stall = 1'b0;
+	assign data_CacheHit = 1'b0;
+	assign data_mem_err = 1'b0;
+	memory2c data_memory(
+		//Output
+		.data_out				(mem_Dataout[15:0]),
+		//Inputs
+		.data_in				(mem_Datain[15:0]),
+		.addr					(mem_Out[15:0]),
+		.enable					(mem_DMemEn),
+		.wr					(mem_DMemWrite),
+		.createdump				(mem_Createdump),
+		.clk					(clk),
+		.rst					(rst)
+		);
+	/*
 	stallmem data_memory(
 		//Output
 		.DataOut				(mem_Dataout[15:0]),
@@ -748,6 +781,7 @@ module proc (/*AUTOARG*/
 		.clk					(clk),
 		.rst					(rst)
 		);
+		*/
 
 	//
 	// Data Hazard Detaction Modules
