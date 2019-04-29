@@ -385,8 +385,24 @@ module proc (/*AUTOARG*/
 	reg32_en dec_rf(.q(exe_rf_in), .d(dec_rf_out), .clk(clk), .rst(rst_pipe), .en(decExeEn));
 	//EX-EX and MEM-EX Forwarding:
 	//LD is different because we will be reading from wb_DataOut instead of wb_Out
-	assign exe_readData1 = Reg1_EX_EXFwrd? mem_Out[15:0]:(Reg1_MEM_EXFwrd)? wb_writeData[15:0] : exe_rf_in[31:16];
-	assign exe_readData2 = Reg2_EX_EXFwrd? mem_Out[15:0]:(Reg2_MEM_EXFwrd)? wb_writeData[15:0] : exe_rf_in[15:0];
+	wire reg1_forward_before_nop;
+	wire reg2_forward_before_nop;
+	wire reg1_forward_before_nop_post;
+	wire reg2_forward_before_nop_post;
+	assign reg1_forward_before_nop = (Reg1_MEM_EXFwrd) & ~decExeEn;
+	assign reg2_forward_before_nop = (Reg2_MEM_EXFwrd) & ~decExeEn;
+	wire [31:0] forward_before_nop_out;
+	wire [31:0] forward_before_nop_in;
+	assign forward_before_nop_in = Reg1_MEM_EXFwrd? {wb_writeData, exe_rf_in[15:0]}:Reg2_MEM_EXFwrd? {exe_rf_in[31:16], wb_writeData} : exe_rf_in;
+	reg32_en dec_rf_reg(.q(forward_before_nop_out), .d(forward_before_nop_in), .clk(clk), .rst(rst_pipe), .en(reg1_forward_before_nop | reg2_forward_before_nop));
+	wire [15:0] forward_before_nop_out_control;
+	wire [15:0] forward_before_nop_in_control;
+	assign forward_before_nop_in_control = {{14{1'b0}},reg1_forward_before_nop,reg2_forward_before_nop};
+	reg16 dec_rf_control_reg(.q(forward_before_nop_out_control), .d(forward_before_nop_in_control), .clk(clk), .rst(rst_pipe));
+	assign reg1_forward_before_nop_post = forward_before_nop_out_control[1];
+	assign reg2_forward_before_nop_post = forward_before_nop_out_control[0];
+	assign exe_readData1 = Reg1_EX_EXFwrd? mem_Out[15:0]:(Reg1_MEM_EXFwrd)? wb_writeData[15:0] : reg1_forward_before_nop_post? forward_before_nop_out[31:16]:exe_rf_in[31:16];
+	assign exe_readData2 = Reg2_EX_EXFwrd? mem_Out[15:0]:(Reg2_MEM_EXFwrd)? wb_writeData[15:0] : reg2_forward_before_nop_post? forward_before_nop_out[15:0]:exe_rf_in[15:0];
 
 	// Sign-ext Pipeline Reg
 	assign dec_sign_ext_out = {dec_Imm5[4:0], dec_Imm8[7:0], dec_ImmDis[10:0]};
