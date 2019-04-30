@@ -1,7 +1,10 @@
+../verification/mytests/add_after_ld.asm
 ../verification/mytests/basic.asm
 ../verification/mytests/halt.asm
 ../verification/mytests/jump_hard.asm
+../verification/mytests/ld_ld_add.asm
+../verification/mytests/ldld_simp.asm
 ../verification/mytests/st_lbi.asm
 ../verification/mytests/sub.asm
-../verification/mytests/add_after_ld.asm
 ../verification/mytests/unaligned_simple.asm
+
