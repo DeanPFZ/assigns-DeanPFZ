@@ -65,6 +65,7 @@ module mem_system(/*AUTOARG*/
    wire [15:0]   fsmCacheDataIn, cacheHitDataOut;
    wire          victimway, inVictimWay, inVictWayDCache, inVictWayICache, invalidOP,
                  errOp, holdEn1;
+   wire addrErr;
 
    assign idleHit = ((cacheHitOutC0 && cacheValidOutC0) || 
                      (cacheHitOutC1 && cacheValidOutC1));
@@ -251,7 +252,8 @@ module mem_system(/*AUTOARG*/
                        .clk(clk),
                        .rst(rst));
    
-   assign   err = (cacheErrC0 || cacheErrC1 || memErr || errOp || errFSM);
+   assign addrErr = (Rd|Wr) & Addr[0];
+   assign   err = (cacheErrC0 || cacheErrC1 || memErr || errOp || errFSM || addrErr);
    // if we went to memory to get the value, then we don't want CacheHit to be high
    assign   CacheHit = (((cacheHitOutC0 && cacheValidOutC0) || 
                          (cacheHitOutC1 && cacheValidOutC1)) &&        
