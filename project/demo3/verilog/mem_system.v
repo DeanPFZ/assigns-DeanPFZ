@@ -1,13 +1,28 @@
-/* $Author: karu $ */
-/* $LastChangedDate: 2009-04-24 09:28:13 -0500 (Fri, 24 Apr 2009) $ */
-/* $Rev: 77 $ */
-
+/* 
+   CS/ECE 552, Spring '19
+   Project
+  
+   Filename        : mem_system.v
+   Description     : This is the memory system.  It is the top-level module for all
+                     caches, stalling memory, etc. used in the project.
+                     This version implements the 2-way set associative cache.
+*/
 module mem_system(/*AUTOARG*/
-   // Outputs
-   DataOut, Done, Stall, CacheHit, err, 
-   // Inputs
-   Addr, DataIn, Rd, Wr, createdump, clk, rst
-   );
+                  // Outputs
+                  DataOut,
+                  Done,
+                  Stall,    
+                  CacheHit,    
+                  err,    
+                  // Inputs
+                  Addr,
+                  DataIn,    
+                  Rd,    
+                  Wr,   
+                  createdump,   
+                  clk,   
+                  rst  
+                  );    
    
    input [15:0] Addr;
    input [15:0] DataIn;
@@ -18,178 +33,229 @@ module mem_system(/*AUTOARG*/
    input        rst;
    
    output [15:0] DataOut;
-   output Done;
-   output Stall;
-   output CacheHit;
-   output err;
-
-	//
-	// Internal signals
-	//
-	wire evict_sel;
-	wire vict_in, vict_out;
-
-	// generalized cache signals for fsm
-    wire cache_enable, cache_comp, cache_wr, cache_valid_in; 
-    wire cache_dirty, cache_valid, cache_hit, cache_err;
-	wire [15:0] cache_data_out;
-	wire [15:0] cache_data_in;
-	wire [4:0] cache_tag_in;
-	wire [4:0] cache_tag_out;
-	wire [7:0] cache_index;
-	wire [2:0] cache_offset;
-	// mem & fsm signals
-	wire [15:0] mem_data_in, mem_data_out, mem_addr;
-    wire mem_wr, mem_rd, mem_stall, mem_err;
-	wire [3:0]  mem_busy;
-    wire fsm_err, fsm_stall, fsm_done, fsm_hit;
-	wire [4:0] fsm_state;
-
-	// Cache 0 signals
-	wire [4:0] cache_tag_out_0;
-	wire [15:0] cache_data_out_0;
-	wire cache_hit_0;
-	wire cache_dirty_0;
-	wire cache_valid_0;
-	wire cache_err_0;
-	wire cache_wr_0;
-
-	// Cache 1 signals
-	wire [4:0] cache_tag_out_1;
-	wire [15:0] cache_data_out_1;
-	wire cache_hit_1;
-	wire cache_dirty_1;
-	wire cache_valid_1;
-	wire cache_err_1;
-	wire cache_wr_1;
-
-	//
-	// Victimway flipflop 
-	//
-	dff victimway(.q(vict_out), .d(vict_in), .clk(clk), .rst(rst));
-	assign vict_in = ((Rd | Wr) & ~Stall) ? ~vict_out : vict_out;
+   output        Done;
+   output        Stall;
+   output        CacheHit;
+   output        err;
 
    /* data_mem = 1, inst_mem = 0 *
     * needed for cache parameter */
    parameter memtype = 0;
-   cache #(0 + memtype) c0(// Outputs
-                          .tag_out            	(cache_tag_out_0),
-                          .data_out           	(cache_data_out_0),
-                          .hit                	(cache_hit_0),
-                          .dirty              	(cache_dirty_0),
-                          .valid              	(cache_valid_0),
-                          .err                	(cache_err_0),
-                          // Inputs
-                          .enable               (cache_enable),
-                          .clk                  (clk),
-                          .rst                  (rst),
-                          .createdump           (createdump),
-                          .tag_in               (cache_tag_in),
-                          .index                (cache_index),
-                          .offset               (cache_offset),
-                          .data_in              (cache_data_in),
-                          .comp                 (cache_comp),
-                          .write              	(cache_wr_0),
-                          .valid_in             (cache_valid_in));
-						  
-   cache #(2 + memtype) c1(// Outputs
-                          .tag_out            	(cache_tag_out_1),
-                          .data_out           	(cache_data_out_1),
-                          .hit                	(cache_hit_1),
-                          .dirty              	(cache_dirty_1),
-                          .valid              	(cache_valid_1),
-                          .err                	(cache_err_1),
-                          // Inputs
-                          .enable               (cache_enable),
-                          .clk                  (clk),
-                          .rst                  (rst),
-                          .createdump           (createdump),
-                          .tag_in               (cache_tag_in),
-                          .index                (cache_index),
-                          .offset               (cache_offset),
-                          .data_in              (cache_data_in),
-                          .comp                 (cache_comp),
-                          .write              	(cache_wr_1),
-                          .valid_in             (cache_valid_in));
+   parameter    NODATAOUT = 16'h0000;
 
-   four_bank_mem mem(// Outputs
-                     .data_out          (mem_data_out),
-                     .stall             (mem_stall),
-                     .busy              (mem_busy),
-                     .err               (mem_err),
-                     // Inputs
-                     .clk               (clk),
-                     .rst               (rst),
-                     .createdump        (createdump),
-                     .addr              (mem_addr),
-                     .data_in           (mem_data_in),
-                     .wr                (mem_wr),
-                     .rd                (mem_rd));
+   // to make it binary
+   assign memType = memtype[0];   
 
+   // You must pass the memtype parameter 
+   // and createdump inputs to the 
+   // cache modules
+
+   wire [4:0]    cacheTagOutC0, cacheTagOutC1;
+   wire [1:0]    FSMWordOut;
+   wire [15:0]   cacheDataOutC0, cacheDataOutC1, memDataOut, FSMDataOut, FSMAddrOut;
+
+   wire          memStall, memErr, cacheErrC0, cacheErrC1, errFSM, FSMEnC0, FSMEnC1, 
+                 FSMCompC0, FSMCompC1, cacheWriteC0,
+                 cacheWriteC1;
+   wire          FSMmemWrite, FSMmemRead, cacheHitOutC0, cacheHitOutC1, cacheDirtyOutC0,
+                 cacheDirtyOutC1, cacheValidOutC0, cacheValidOutC1;        
+   wire [3:0]    memBusy, state;               
+
+   // internal wires
+   wire [15:0]   fsmCacheDataIn, cacheHitDataOut;
+   wire          victimway, inVictimWay, inVictWayDCache, inVictWayICache, invalidOP,
+                 errOp, holdEn1;
+
+   assign idleHit = ((cacheHitOutC0 && cacheValidOutC0) || 
+                     (cacheHitOutC1 && cacheValidOutC1));
    
-   // your code here
-   cache_fsm fsm(// Output
-					.fsm_done			(fsm_done),
-					.cache_data_in		(cache_data_in),
-					.cache_comp			(cache_comp),
-					.cache_enable		(cache_enable),
-					.cache_wr			(cache_wr),
-					.cache_valid_in		(cache_valid_in),
-					.fsm_stall			(fsm_stall),
-					.fsm_err			(fsm_err),
-					.cache_tag_in		(cache_tag_in),
-					.cache_index		(cache_index),
-					.cache_offset		(cache_offset),
-					.mem_addr			(mem_addr),
-					.mem_wr				(mem_wr),
-					.mem_rd				(mem_rd),
-					.mem_data_in		(mem_data_in),
-					.fsm_hit			(fsm_hit),
-					.state              (fsm_state),
-					// Input
-					.DataIn				(DataIn),
-					.cache_data_out		(cache_data_out),
-					.cache_hit			(cache_hit),
-					.cache_dirty		(cache_dirty),
-					.cache_valid		(cache_valid),
-					.Addr				(Addr),
-					.Rd					(Rd),
-					.Wr					(Wr),
-					.clk				(clk),
-					.rst				(rst),
-					.cache_tag_out		(cache_tag_out),
-					.mem_DataOut		(mem_data_out));
+   /* 
+    miss logic - if we aren't in the Done state or in the Idle state and don't have 
+    hit1 & valid1 or hit0 & valid0 then we don't want to take any data for DataOut
+    */
+   assign takeData = ((state == 4'b1100) || (idleHit && state == 4'b0000));
+   assign noData = ~takeData;
 
-
-    assign cache_err = cache_err_0 | cache_err_1;
-	assign cache_data_out = (cache_hit_0) ? cache_data_out_0 : 
-							(cache_hit_1) ? cache_data_out_1 :
-							(evict_sel) ? cache_data_out_1 : 
-							cache_data_out_0;
-	assign DataOut = cache_data_out;
-	assign Done = fsm_done;	
-	assign CacheHit = fsm_hit;
-	assign Stall = fsm_stall|mem_stall;
-    assign err = (Addr[0]==1'b1)|fsm_err|cache_err|mem_err;
-
-	assign cache_hit = (cache_tag_in == cache_tag_out_0) ? cache_hit_0 : cache_hit_1;
-
-	assign cache_valid = (fsm_state == 5'b00001) ? // CHECK_HIT state
-					((cache_tag_in == cache_tag_out_0) ? cache_valid_0 : cache_valid_1) :
-					((evict_sel) ? cache_valid_1: cache_valid_0);
-
-	assign cache_dirty = evict_sel ? cache_dirty_1 : cache_dirty_0;
-	assign cache_tag_out = evict_sel ? cache_tag_out_1 : cache_tag_out_0;
-
-	assign evict_sel = (~Stall) ? ((~cache_valid_0) ? 1'b0 :
-						(~cache_valid_1) ? 1'b1 : vict_out) : evict_sel;
-
-	assign cache_wr_0 = cache_wr ? ((cache_hit_0 & cache_hit_1 )?  (~evict_sel) : (cache_hit_0 | (~evict_sel))) : 1'b0;
-	assign cache_wr_1 = cache_wr ? ((cache_hit_0 & cache_hit_1 )?  (evict_sel) : (cache_hit_1 | (evict_sel))) : 1'b0;
+   // selDCache logic - if not stalling, not memory stalling, not flushing, not an
+   // invalid instruction and we're doing a Read or Write - then invert victimway
+   assign selDCache = (~invalidOP && ~memStall && ~Stall && (Rd || Wr));   
    
-endmodule // mem_system
+   // first of 2 caches (way 0)
+   cache #(.cache_id(0 + memtype)) c0 (// Inputs
+                                       .enable(FSMEnC0),
+                                       .clk(clk),           
+                                       .rst(rst),
+                                       .createdump(createdump),
+                                       .tag_in(FSMAddrOut[15:11]),   
+                                       .index(FSMAddrOut[10:3]),    
+                                       .offset({FSMWordOut, 1'b0}),   
+                                       .data_in(FSMDataOut),   
+                                       .comp(FSMCompC0),
+                                       .write(cacheWriteC0),
+                                       .valid_in(1'b1),            
+                                       // Outputs
+                                       .tag_out(cacheTagOutC0),
+                                       .data_out(cacheDataOutC0),
+                                       .hit(cacheHitOutC0),
+                                       .dirty(cacheDirtyOutC0),
+                                       .valid(cacheValidOutC0),
+                                       .err(cacheErrC0)
+                                       );
 
+   // second of 2 caches (way 1)
+   cache #(.cache_id(2 + memtype)) c1 (// Inputs
+                                       .enable(FSMEnC1),
+                                       .clk(clk),
+                                       .rst(rst),
+                                       .createdump(createdump),
+                                       .tag_in(FSMAddrOut[15:11]),
+                                       .index(FSMAddrOut[10:3]),
+                                       .offset({FSMWordOut, 1'b0}),
+                                       .data_in(FSMDataOut),             
+                                       .comp(FSMCompC1),
+                                       .write(cacheWriteC1),             
+                                       .valid_in(1'b1),
+                                       // Outputs
+                                       .tag_out(cacheTagOutC1),
+                                       .data_out(cacheDataOutC1),
+                                       .hit(cacheHitOutC1),   
+                                       .dirty(cacheDirtyOutC1),
+                                       .valid(cacheValidOutC1),
+                                       .err(cacheErrC1)
+                                       );        
+
+   // 2-1 16-bit mux to decide which cacheDataOut should go into the FSM
+   // select uses logic from caches / FSM
+   // if one of the caches is enabled, we always want to use that one (i.e. Access
+   // Reads)
+   mux2_1_16b muxCacheDataOut (.i0(cacheDataOutC0),
+                               .i1(cacheDataOutC1),
+                               .Sel(holdEn1),
+                               .out(fsmCacheDataIn));             
    
+   // 2-way set associative cache controller (FSM)
+   memStateMachine_Set twoWayStateMach (// Outputs
+                                        .fsmDataOut(FSMDataOut), 
+                                        .AddrOut(FSMAddrOut), 
+                                        .wordOut(FSMWordOut),
+                                        .done(Done),
+                                        .cacheWrite0(cacheWriteC0),
+                                        .cacheWrite1(cacheWriteC1),
+                                        .memWrite(FSMmemWrite), 
+                                        .memRead(FSMmemRead), 
+                                        .comp0(FSMCompC0),         
+                                        .comp1(FSMCompC1),         
+                                        .enC0(FSMEnC0),          
+                                        .enC1(FSMEnC1),
+                                        .stallOut(Stall),
+                                        .currState(state),
+                                        .err(errFSM),
+                                        // Inputs
+                                        .tagInC0(cacheTagOutC0),
+                                        .tagInC1(cacheTagOutC1),
+                                        .victimway(inVictimWay),
+                                        .cacheDataOut(fsmCacheDataIn), 
+                                        .memDataOut(memDataOut), 
+                                        .data_in(DataIn), 
+                                        .busy(memBusy), 
+                                        .Rd(Rd), 
+                                        .Wr(Wr), 
+                                        .Addr(Addr), 
+                                        .clk(clk), 
+                                        .rst(rst),             
+                                        .validOutC0(cacheValidOutC0),       
+                                        .validOutC1(cacheValidOutC1),
+                                        .dirtyOutC0(cacheDirtyOutC0),
+                                        .dirtyOutC1(cacheDirtyOutC1),
+                                        .hitC0(cacheHitOutC0),
+                                        .hitC1(cacheHitOutC1), 
+                                        .stall(memStall)
+                                        );
 
+   four_bank_mem fourBankMem (// Inputs
+                              .clk(clk),            
+                              .rst(rst),
+                              .createdump(createdump),
+                              .addr(FSMAddrOut),
+                              .data_in(FSMDataOut),
+                              .wr(FSMmemWrite),
+                              .rd(FSMmemRead),
+                              // Outputs
+                              .data_out(memDataOut),             
+                              .stall(memStall),
+                              .busy(memBusy),
+                              .err(memErr)
+                              );
 
+   // use 2 2-1 muxes to output DataOut correctly
+   // if we get a hit0 and valid0, then we want to take that one
+   // similarly for hit1 and valid1
+   // this should also work for reading after going to memory since hit and valid will
+   // be high there too (they just won't cause CacheHit to go high in that state)
+   mux2_1_16b muxHit (.i0(cacheDataOutC0),
+                      .i1(cacheDataOutC1),
+                      .Sel((cacheHitOutC1 && cacheValidOutC1)),
+                      .out(cacheHitDataOut));
+
+   // if we have a miss, we want to output 0
+   mux2_1_16b muxDataOut (.i0(cacheHitDataOut),
+                          .i1(NODATAOUT),       
+                          .Sel(noData),
+                          .out(DataOut));       
+
+   // victimway FF
+   dffe #(1) dffVictim (.d(inVictimWay),
+                        .q(victimway),             
+                        .clk(clk),
+                        .rst(rst),
+                        .en(1'b1));          
+   
+   // muxes for input to victim way
+   // for an I Cache, if we aren't stalling, then we want to invert the victimway bit
+   // (invert for every instruction fetched)
+   mux2_1_16b #(1) muxVictimICache (.i0(victimway), 
+                                    .i1(~victimway),
+                                    .Sel(~memStall && ~Stall),          
+                                    .out(inVictWayICache));          
+
+   // for a D Cache, if we aren't stalling, flushing, or getting an invalid 
+   // instruction, and we are doing a read or write, then we want to invert the
+   // victimway bit
+   // ** Instructions that are flushed have thier contol signals set to 0...thus Read
+   // and Write would = 0 for them (so in essence flush is implicit in the logic)
+   mux2_1_16b #(1) muxVictimDCache (.i0(victimway), 
+                                    .i1(~victimway),          
+                                    .Sel(selDCache),            
+                                    .out(inVictWayDCache));         
+
+   // depending on the input parameter that tells us if it's an I or D cache, take the
+   // correct victimway input (use the parameter memtype as this select)
+   mux2_1_16b #(1) muxInVictimWay (.i0(inVictWayICache),
+                                   .i1(inVictWayDCache),
+                                   .Sel(memType),
+                                   .out(inVictimWay));        
+   
+   // use the upper 5 bits of the address to deduce if the opcode passed in is invalid
+   invalidOpCode invOp (// Outputs
+                        .err(errOp),
+                        .invalidOp(invalidOP),      
+                        // Inputs            
+                        .Op(FSMAddrOut[15:11]));
+
+   // we want to hold the enable signal for an entire "cycle" of signals, only
+   // changing when we're in Idle
+   dffe #(1) holdEnC1 (.d(FSMEnC1 && cacheValidOutC1 && cacheDirtyOutC1 && 
+                          ~cacheHitOutC1 && inVictimWay),
+                       .q(holdEn1),
+                       .en((state == 4'b0000)),
+                       .clk(clk),
+                       .rst(rst));
+   
+   assign   err = (cacheErrC0 || cacheErrC1 || memErr || errOp || errFSM);
+   // if we went to memory to get the value, then we don't want CacheHit to be high
+   assign   CacheHit = (((cacheHitOutC0 && cacheValidOutC0) || 
+                         (cacheHitOutC1 && cacheValidOutC1)) &&        
+                        (state == 4'b0000) && Done);            
+   
+endmodule // mem_system                 
 // DUMMY LINE FOR REV CONTROL :9:
