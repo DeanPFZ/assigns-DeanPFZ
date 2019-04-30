@@ -677,7 +677,7 @@ module proc (/*AUTOARG*/
 		.rst					(rst)
 		);
 */
-	mem_system #(0) instruction_memory(
+	mem_system #(.memtype(0)) instruction_memory(
 		//Output
 		.DataOut				(ftch_instruction[15:0]),
 		.err					(instruct_mem_err),
@@ -843,7 +843,7 @@ module proc (/*AUTOARG*/
 		);
 */
 
-	mem_system #(1) data_memory(
+	mem_system #(.memtype(1)) data_memory(
 		//Output
 		.DataOut				(mem_Dataout[15:0]),
 		.err					(data_mem_err),
