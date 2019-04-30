@@ -249,7 +249,9 @@ module proc (/*AUTOARG*/
 	wire memWbEn;
 	wire mem_stall;
 	assign mem_stall = (instruct_Stall & instruct_Done) ? (data_Stall & ~data_Done) :
-			(data_Stall & data_Done) ? (instruct_Stall & ~instruct_Done): ((data_Stall & ~data_Done) | (instruct_Stall & ~instruct_Done));
+			(data_Stall & data_Done) ? (instruct_Stall & ~instruct_Done): 
+			(~data_Stall & ~data_Done & mem_DMemEn) ? 1'b1: 
+			((data_Stall & ~data_Done) | (instruct_Stall & ~instruct_Done));
 
 	//
 	// Data Hazard Detection Signals
@@ -545,7 +547,8 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	assign exeMemEn = (mem_stall) ? 1'b0 : (mem_HaltPC)? 1'b0 : 1'b1;
+	assign exeMemEn = (mem_stall) ? 1'b0 : 
+			(mem_HaltPC)? 1'b0 : 1'b1;
 
 	assign exe_cntrl_out = (Reg1_MEM_DFwrd_Do_Stall|Reg2_MEM_DFwrd_Do_Stall)? {64{1'b0}} :(Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? {64{1'b0}} : {{2{1'b0}},
 							exe_readData2[15:0],
@@ -803,7 +806,7 @@ module proc (/*AUTOARG*/
 
 	assign data_Wr = (mem_DMemEn & mem_DMemWrite);
 	assign data_Rd = (mem_DMemEn & ~mem_DMemWrite);
-
+/*
 	assign data_Done = 1'b0;
 	assign data_Stall = 1'b0;
 	assign data_CacheHit = 1'b0;
@@ -820,7 +823,7 @@ module proc (/*AUTOARG*/
 		.clk					(clk),
 		.rst					(rst)
 		);
-
+*/
 /*
 	stallmem data_memory(
 		//Output
@@ -839,7 +842,7 @@ module proc (/*AUTOARG*/
 		.rst					(rst)
 		);
 */
-/*
+
 	mem_system #(1) data_memory(
 		//Output
 		.DataOut				(mem_Dataout[15:0]),
@@ -856,7 +859,7 @@ module proc (/*AUTOARG*/
 		.clk					(clk),
 		.rst					(rst)
 	);
-*/
+
 
 	//
 	// Data Hazard Detaction Modules
