@@ -270,6 +270,8 @@ module proc (/*AUTOARG*/
 	wire wb_Reg2_EX_EXFwrd_Stall;
 	wire Reg1_EX_DFwrd_Stall;
 	wire Reg2_EX_DFwrd_Stall;
+	wire Reg1_MEM_DFwrd_Do_Stall;
+	wire Reg2_MEM_DFwrd_Do_Stall;
 
 	//branch after load
 	wire EX_DFwrd_do_Stall;
@@ -283,6 +285,8 @@ module proc (/*AUTOARG*/
 					(dec_OpCode[4:2] == 3'b011 & mem_OpCode[4:0] == 5'b10001)? 1'b1 : 1'b0;
 	assign Reg1_EX_DFwrd_Do_Stall = EX_DFwrd_do_Stall & Reg1_EX_DFwrd_Stall;
 	assign Reg2_EX_DFwrd_Do_Stall = EX_DFwrd_do_Stall & Reg2_EX_DFwrd_Stall;
+	assign Reg1_MEM_DFwrd_Do_Stall = EX_DFwrd_do_Stall & mem_RegWrite&(mem_DMemEn & ~mem_DMemWrite)&(mem_writeRegSel==dec_readReg1Sel);
+	assign Reg2_MEM_DFwrd_Do_Stall = EX_DFwrd_do_Stall & mem_RegWrite&(mem_DMemEn & ~mem_DMemWrite)&(mem_writeRegSel==dec_readReg2Sel);
 	wire [15:0] exe_mem_stall_input;
 	wire [15:0] exe_mem_stall_output;
 	wire [15:0] mem_wb_stall_input;
@@ -307,7 +311,7 @@ module proc (/*AUTOARG*/
 	assign ftchPCEn = (mem_stall) ? 1'b0 : 
 	(~instruct_Stall & ~instruct_Done)? 1'b0 :
 	(instruct_Stall & instruct_Done & ftch_branch_nop_post)? 1'b0:
-	(Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? 1'b0 :(Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : 1'b1;
+	(Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? 1'b0 : (Reg1_MEM_DFwrd_Do_Stall|Reg2_MEM_DFwrd_Do_Stall)? 1'b0 :(Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : 1'b1;
 
 
 	//PC Reg
@@ -323,14 +327,14 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	 assign ftchDecEn = (mem_stall) ? 1'b0 : (Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? 1'b0 :(Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : (dec_post_HaltPC)? 1'b0 : 1'b1;
+	 assign ftchDecEn = (mem_stall) ? 1'b0 : (Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? 1'b0 :(Reg1_MEM_DFwrd_Do_Stall|Reg2_MEM_DFwrd_Do_Stall)? 1'b0 :(Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : (dec_post_HaltPC)? 1'b0 : 1'b1;
 
-	assign ftchOut = (ftch_branch_nop)? {16'b0000100000000000, ftch_PC2[15:0]} : {ftch_instruction[15:0], ftch_PC2[15:0]};
+	assign ftchOut = (~instruct_Stall & ~instruct_Done)? {16'b0000100000000000, ftch_PC2[15:0]} : (ftch_branch_nop)? {16'b0000100000000000, ftch_PC2[15:0]} : {ftch_instruction[15:0], ftch_PC2[15:0]};
 	reg32_en fet_dec(.q(decIn), .d(ftchOut), .clk(clk), .rst(rst_pipe), .en(ftchDecEn));
 	assign dec_PC2 = decIn[15:0];
 
 	
-	assign dec_instruction = ftch_branch_nop_post? {16'b0000100000000000} : (instruct_Stall & instruct_Done) ? {16'b0000100000000000} : decIn[31:16];
+	assign dec_instruction = ftch_branch_nop_post? {16'b0000100000000000} : decIn[31:16];
 
 
 	//
@@ -385,7 +389,7 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	assign decExeEn =  (mem_stall) ? 1'b0 : (Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? 1'b0 : (Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : (exe_HaltPC)? 1'b0 : 1'b1;
+	assign decExeEn =  (mem_stall) ? 1'b0 : (Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? 1'b0 : (Reg1_MEM_DFwrd_Do_Stall|Reg2_MEM_DFwrd_Do_Stall)? 1'b0 :(Reg2_EX_DFwrd_Do_Stall & ~Reg2_MEM_DFwrd)? 1'b0 : (Reg1_EX_DFwrd_Do_Stall & ~Reg1_MEM_DFwrd)? 1'b0 : (exe_HaltPC)? 1'b0 : 1'b1;
 
 	// Register File Pipeline Reg
 	assign dec_rf_out = {dec_readData1[15:0], dec_readData2[15:0]};
@@ -428,7 +432,7 @@ module proc (/*AUTOARG*/
 	reg16_en branch_reg(.q(branch_output), .d(branch_input), .clk(clk), .rst(rst), .en((~instruct_Stall & dec_PCSrc)|(~instruct_Stall & ~dec_PCSrc)));
 	assign ftch_branch_nop_post = branch_output[0];
 	reg16_en ftch_post_PC_reg(.q(dec_post_PC), .d(ftch_post_PC), .clk(clk), .rst(rst_pipe), .en(ftchDecEn));
-	assign dec_post_HaltPC = ((|dec_post_PC) & instruct_Done)? dec_HaltPC : 1'b0;
+	assign dec_post_HaltPC = (|dec_post_PC) ? dec_HaltPC : 1'b0;
 
 	// Control Signal Pipeline Reg
 	assign dec_cntrl_out1 = {dec_readReg2Sel,
@@ -543,7 +547,7 @@ module proc (/*AUTOARG*/
 	// TODO: Assign the enable signal
 	assign exeMemEn = (mem_stall) ? 1'b0 : (mem_HaltPC)? 1'b0 : 1'b1;
 
-	assign exe_cntrl_out = (Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? {64{1'b0}} : {{2{1'b0}},
+	assign exe_cntrl_out = (Reg1_MEM_DFwrd_Do_Stall|Reg2_MEM_DFwrd_Do_Stall)? {64{1'b0}} :(Reg2_EX_EXFwrd_Stall|Reg1_EX_EXFwrd_Stall)? {64{1'b0}} : {{2{1'b0}},
 							exe_readData2[15:0],
 							exe_HaltPC,
 							exe_MemToReg,
