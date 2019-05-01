@@ -130,8 +130,7 @@ module proc_hier_pbench();
    assign PC = DUT.p0.ftch_post_PC;
    assign Inst = DUT.p0.ftch_instruction;
 
-   assign RegWrite = (DUT.p0.mem_stall) ? 1'b0 : 
-	   ((DUT.p0.mem_Reg1_EX_DFwrd_Do_Stall & DUT.p0.wb_Reg1_EX_DFwrd_Do_Stall)? 1'b0 : DUT.p0.dec_writeEn);
+   assign RegWrite = (DUT.p0.mem_stall) ? 1'b0 : DUT.p0.dec_writeEn;
 
    // Is register file being written to, one bit signal (1 means yes, 0 means no)
    //
@@ -142,9 +141,8 @@ module proc_hier_pbench();
    // Data being written to the register. (16 bits)
 
    assign MemRead = (DUT.p0.mem_stall) ? 1'b0 : 
-	   ((DUT.p0.mem_Reg1_EX_DFwrd_Do_Stall & DUT.p0.wb_Reg1_EX_DFwrd_Do_Stall)? 1'b0:
                         (~DUT.p0.ftchPCEn & ~DUT.p0.ftchDecEn & ~DUT.p0.decExeEn & ~DUT.p0.exeMemEn)? 1'b0 :
-                        DUT.p0.mem_DMemEn & ~DUT.p0.mem_DMemWrite);
+                        DUT.p0.mem_DMemEn & ~DUT.p0.mem_DMemWrite;
    // Is memory being read, one bit signal (1 means yes, 0 means no)
 
    assign MemWrite = (DUT.p0.mem_stall) ? 1'b0 : DUT.p0.mem_DMemWrite;
