@@ -287,6 +287,8 @@ module proc (/*AUTOARG*/
 	assign Reg1_MEM_DFwrd_Do_Stall = MEM_DFwrd_do_Stall & mem_RegWrite&(mem_DMemEn & ~mem_DMemWrite)&(mem_writeRegSel==dec_readReg1Sel);
 	assign Reg2_MEM_DFwrd_Do_Stall = MEM_DFwrd_do_Stall & mem_RegWrite&(mem_DMemEn & ~mem_DMemWrite)&(mem_writeRegSel==dec_readReg2Sel);
 
+	
+
 	//
 	// Fetch Logic
 	//
@@ -295,8 +297,10 @@ module proc (/*AUTOARG*/
 	assign ftch_pre_PC[15:0] = ftch_HaltPC? ftch_post_PC : ftch_PC2_back;
 	wire ftchPCEn;
 	wire ftch_branch_nop_post;
-	assign ftchPCEn = (mem_stall) ? 1'b0 : 
+	wire ftch_branch_nop_post_tmp;
+	assign ftchPCEn = 
 	(~instruct_Stall & ~instruct_Done)? dec_PCSrc :
+	(mem_stall) ? 1'b0 : 
 	(instruct_Stall & instruct_Done & ftch_branch_nop_post)? 1'b0:
 	(Reg1_EX_EXFwrd_Stall|Reg2_EX_EXFwrd_Stall)? 1'b0 : 
 	(Reg1_MEM_DFwrd_Do_Stall|Reg2_MEM_DFwrd_Do_Stall)? 1'b0 :
@@ -316,7 +320,8 @@ module proc (/*AUTOARG*/
 	//
 
 	// TODO: Assign the enable signal
-	 assign ftchDecEn = (mem_stall) ? 1'b0 : 
+	 assign ftchDecEn = 
+		(mem_stall) ? 1'b0 : 
 		(Reg1_EX_EXFwrd_Stall|Reg2_EX_EXFwrd_Stall)? 1'b0 :
 		(Reg1_MEM_DFwrd_Do_Stall|Reg2_MEM_DFwrd_Do_Stall)? 1'b0 : 
 		(Reg1_EX_DFwrd_Do_Stall|Reg2_EX_DFwrd_Do_Stall)? 1'b0 : 
@@ -327,8 +332,8 @@ module proc (/*AUTOARG*/
 	assign dec_PC2 = decIn[15:0];
 
 	
-	assign dec_instruction = ftch_branch_nop_post? {16'b0000100000000000} : decIn[31:16];
-
+	assign dec_instruction = (ftch_branch_nop_post & ~ftch_branch_nop_post_tmp)? {16'b0000100000000000}:decIn[31:16];
+	//assign dec_instruction = decIn[31:16];
 
 	//
 	// Decode Logic
@@ -420,15 +425,19 @@ module proc (/*AUTOARG*/
 	assign ftch_branch_nop = dec_PCSrc;
 	wire [15:0] branch_input;
 	wire [15:0] branch_output;
+	wire [15:0] branch_output_tmp;
 	wire [15:0] dec_post_PC;
 	assign branch_input = {{15{1'b0}},ftch_branch_nop};
 	reg16_en branch_reg(.q(branch_output), .d(branch_input), .clk(clk), .rst(rst), .en((~instruct_Stall & dec_PCSrc)|(~instruct_Stall & ~dec_PCSrc)));
 	assign ftch_branch_nop_post = branch_output[0];
+	reg16_en branch_reg_tmp(.q(branch_output_tmp), .d(branch_input), .clk(clk), .rst(rst), .en((~instruct_Stall & dec_PCSrc)|(instruct_Stall & instruct_Done & ~dec_PCSrc)));
+	assign ftch_branch_nop_post_tmp = branch_output_tmp[0];
 	reg16_en ftch_post_PC_reg(.q(dec_post_PC), .d(ftch_post_PC), .clk(clk), .rst(rst_pipe), .en(ftchDecEn));
 	assign dec_post_HaltPC = (|dec_post_PC) ? dec_HaltPC : 1'b0;
 
 	// Control Signal Pipeline Reg
-	assign dec_cntrl_out1 = (Reg1_EX_DFwrd_Do_Stall|Reg2_EX_DFwrd_Do_Stall)? {64{1'b0}} :{dec_readReg2Sel,
+	assign dec_cntrl_out1 = (Reg1_EX_DFwrd_Do_Stall|Reg2_EX_DFwrd_Do_Stall)? {64{1'b0}} :
+							{dec_readReg2Sel,
 							dec_readReg1Sel,
 							dec_cntrlErr,
 							dec_RegDst,
@@ -666,6 +675,7 @@ module proc (/*AUTOARG*/
 		.rst					(rst)
 		);
 */
+
 	mem_system #(.memtype(0)) instruction_memory(
 		//Output
 		.DataOut				(ftch_instruction[15:0]),
