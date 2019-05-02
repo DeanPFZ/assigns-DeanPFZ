@@ -8,6 +8,7 @@
                      as the victimway value, and outputs what value waySel should be.
                      It also outputs what the next state should be (assumes we're in
                      state Idle).
+   Author          : CS552 Staff
 */
 module waySelect (/*AUTOARG*/      
                   // Outputs         

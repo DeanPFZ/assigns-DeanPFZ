@@ -6,6 +6,7 @@
    Description     : This module is contains the logic for a Mealy FSM.  This FSM
                      controls the interaction between the cache and memory for the
                      set associative.            
+   Author          : CS552 Staff
 */
 module memStateMachine_Set (/*AUTOARG*/
                             // Outputs

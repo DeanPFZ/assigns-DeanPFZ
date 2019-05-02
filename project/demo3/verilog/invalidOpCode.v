@@ -6,6 +6,7 @@
    Description     : This module contains the logic for the decision on whether an 
                      instruction is valid or not.  An instruction is defined as valid
                      iff it is listed in our ISA specs.
+   Author          : CS552 Staff
 */
 module invalidOpCode (/*AUTOARG*/
                       // Outputs

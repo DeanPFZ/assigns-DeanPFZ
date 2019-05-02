@@ -4,6 +4,8 @@
 
    A 16-bit 2-1 Mux (can be configured with N parameter to be a
    different number of bits).
+
+   Author          : CS552 Staff
 */
 module mux2_1_16b(/*AUTOARG*/
                   // Inputs    
