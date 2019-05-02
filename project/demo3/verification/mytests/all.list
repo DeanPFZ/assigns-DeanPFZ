@@ -7,4 +7,5 @@
 ../verification/mytests/st_lbi.asm
 ../verification/mytests/sub.asm
 ../verification/mytests/unaligned_simple.asm
+../verification/mytests/lbi_ld_jr_lbi.asm
 
